@@ -19,6 +19,7 @@ object CNF {
     }
     def removeAllOccur(vs: List[Int]): Clause = Clause(xs.filter(!vs.contains(_)))
 
+    def assign(vb: (Int, Boolean)): Option[Clause] = assign(vb._1, vb._2)
     def assign(v: Int, b: Boolean): Option[Clause] = {
       var new_xs = List[Int]()
       for (x <- xs) {
@@ -58,6 +59,7 @@ object CNF {
     }
 
     def pick: Int = cs.head.xs.head
+    def assign(vb: (Int, Boolean)): Formula = assign(vb._1, vb._2)
     def assign(v: Int, b: Boolean): Formula = {
       Formula((for (c <- cs) yield c.assign(v, b)).filter(_.nonEmpty).map(_.get))
     }
@@ -129,8 +131,8 @@ object DPLLTest extends App {
   println("DPLL")
   println(example_f.elimUnit)
   println(example_f.elimPure)
-  println(example_f.assign(6, true))
-  println(example_f.assign(6, false))
+  println(example_f.assign(6 → true))
+  println(example_f.assign(6 → false))
   println(solve(example_f))
 
   /*
