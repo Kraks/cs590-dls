@@ -1,6 +1,8 @@
 package sat.dpll
 
 import math._
+import scala.io.Source
+import scala.annotation._
 
 object CNF {
   type Assgn = Map[Int, Boolean]
@@ -61,6 +63,22 @@ object CNF {
     }
   }
 
+  def parseLines(lines: Iterator[String]): Formula = {
+    val cs = for (line <- lines if
+                  !(line.startsWith("c") || line.startsWith("p") ||
+                    line.startsWith("0") || line.startsWith("%") || line.isEmpty)) yield {
+      val ns = line.split(" ").filter(_.nonEmpty).map(_.toInt).toList
+      assert(ns.last == 0)
+      Clause(ns.dropRight(1))
+    }
+    Formula(cs.toList)
+  }
+
+  def parse(input: String): Formula = parseLines(input.split("\\r?\\n").iterator)
+}
+
+object CNF_Examples {
+  import CNF._
   /** (x1 ∨ x2 ∨ -x3 ∨ x6) ∧
     * (-x2 ∨ x4) ∧
     * (-x1 ∨ -x5) ∧
@@ -96,13 +114,17 @@ object DPLL {
     else dpll(f.assign(v, false), assgn + (v → false))
   }
 
-  def solve(f: Formula): Option[Map[Int, Boolean]] = dpll(f, Map[Int, Boolean]())
+  def solve(f: Formula): Option[Map[Int, Boolean]] = dpll(f, Map[Int, Boolean]()) match {
+    case Some(m) => Some(m.map({ case (v, b) => if (v < 0) (-v, !b) else (v, b) }))
+    case None => None
+  }
 
 }
 
-object Hello extends App {
+object DPLLTest extends App {
   import CNF._
   import DPLL._
+  import CNF_Examples._
 
   println("DPLL")
   println(example_f.elimUnit)
@@ -110,4 +132,14 @@ object Hello extends App {
   println(example_f.assign(6, true))
   println(example_f.assign(6, false))
   println(solve(example_f))
+
+  /*
+  val cnf_src1 = Source.fromResource("uuf200-860/uuf200-01.cnf").getLines //UNSAT
+  val cnf1 = parseLines(cnf_src1)
+  println(solve(cnf1))
+   */
+
+  val cnf_src1 = Source.fromResource("uf20-91/uf20-010.cnf").getLines //UNSAT
+  val cnf1 = parseLines(cnf_src1)
+  println(solve(cnf1))
 }
