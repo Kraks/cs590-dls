@@ -139,7 +139,7 @@ object DPLLTest extends App {
   println(solve(cnf1))
    */
 
-  val cnf_src1 = Source.fromResource("uf20-91/uf20-010.cnf").getLines //UNSAT
+  val cnf_src1 = Source.fromResource("uf20-91/uf20-010.cnf").getLines
   val cnf1 = parseLines(cnf_src1)
   println(solve(cnf1))
 }
