@@ -77,6 +77,8 @@ object CNF {
   }
 
   def parse(input: String): Formula = parseLines(input.split("\\r?\\n").iterator)
+
+  def parseFromResource(filePath: String): Formula = parseLines(Source.fromResource(filePath).getLines)
 }
 
 object CNF_Examples {
@@ -99,7 +101,9 @@ object CNF_Examples {
 object DPLL {
   import CNF._
 
-  def dpll(f: Formula, assgn: Map[Int, Boolean]): Option[Map[Int, Boolean]] = {
+  type Asn = Map[Int, Boolean]
+
+  def dpll(f: Formula, assgn: Asn): Option[Asn] = {
     if (f.containsMtClause) return None
     if (f.isEmpty) return Some(assgn)
     if (f.containsUnit) {
@@ -116,7 +120,27 @@ object DPLL {
     else dpll(f.assign(v, false), assgn + (v → false))
   }
 
-  def solve(f: Formula): Option[Map[Int, Boolean]] = dpll(f, Map[Int, Boolean]()) match {
+  def dpll_cps(f: Formula, assgn: Asn, k: Option[Asn] => Option[Asn]): Option[Asn] = {
+    if (f.containsMtClause) return k(None)
+    if (f.isEmpty) return k(Some(assgn))
+    if (f.containsUnit) {
+      val (new_f, new_assgn) = f.elimUnit
+      dpll_cps(new_f, assgn ++ new_assgn, k)
+    }
+    else if (f.containsPure) {
+      val (new_f, new_assgn) = f.elimPure
+      dpll_cps(new_f, assgn ++ new_assgn, k)
+    }
+    else {
+      val v = f.pick
+      dpll_cps(f.assign(v → true), assgn+(v→true), (a) => a match {
+                 case None => dpll_cps(f.assign(v → false), assgn+(v→false), k)
+                 case a => k(a)
+               })
+    }
+  }
+
+  def solve(f: Formula): Option[Map[Int, Boolean]] = dpll_cps(f, Map[Int, Boolean](), (a) => a) match {
     case Some(m) => Some(m.map({ case (v, b) => if (v < 0) (-v, !b) else (v, b) }))
     case None => None
   }
@@ -129,19 +153,20 @@ object DPLLTest extends App {
   import CNF_Examples._
 
   println("DPLL")
+  /*
   println(example_f.elimUnit)
   println(example_f.elimPure)
   println(example_f.assign(6 → true))
   println(example_f.assign(6 → false))
   println(solve(example_f))
 
-  /*
-  val cnf_src1 = Source.fromResource("uuf200-860/uuf200-01.cnf").getLines //UNSAT
-  val cnf1 = parseLines(cnf_src1)
-  println(solve(cnf1))
-   */
+  val cnf3 = parseFromResource("uf20-91/uf20-010.cnf")
+  println(solve(cnf3))
 
-  val cnf_src1 = Source.fromResource("uf20-91/uf20-010.cnf").getLines
-  val cnf1 = parseLines(cnf_src1)
+  val cnf1 = parseFromResource("uuf200-860/uuf200-01.cnf") //UNSAT
   println(solve(cnf1))
+  */
+
+  val cnf2 = parseFromResource("uf200-860/uf200-01.cnf") //SAT
+  println(solve(cnf2))
 }
