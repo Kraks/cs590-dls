@@ -25,7 +25,7 @@ object CNF {
     def size = xs.size
     def contains(v: Int): Boolean = xs.contains(v)
     def remove(v: Int): Clause = Clause(xs.filter(_ != v))
-    def containsAny(vs: List[Int]): Boolean = {
+    def containsAnyOf(vs: List[Int]): Boolean = {
       for (v <- vs) { if (xs.contains(v)) return true }
       return false
     }
@@ -45,14 +45,15 @@ object CNF {
   }
 
   case class Formula(cs: List[Clause]) {
+    lazy val nClauses = cs.size
+    lazy val nVars = allVars.groupBy(abs).size
+
     lazy val allVars = cs.flatMap(_.xs).toSet
     lazy val unitVars = cs.filter(_.size == 1).map(_.xs.head).toSet.toList
     lazy val pureVars = allVars.groupBy(abs).filter(_._2.size==1).values.flatten.toList
 
     private def varsToAssignment(vars: Iterable[Int]) =
       vars.map((x:Int) => if (x>0) (x→true) else (-x→false)).toMap
-
-    override def toString = s"(${cs.mkString(" ∧ ")})"
 
     def addClause(c: Clause): Formula = Formula(c::cs)
     def addSingletonClause(x: Int): Formula = Formula(Clause(List(x))::cs)
@@ -67,21 +68,20 @@ object CNF {
       val v = unitVars(0)
       val asnmt = if (v > 0) Map(v → true) else Map(-v → false)
       var result: List[Clause] = List()
-      /*
       for (c <- cs) {
         if (!c.contains(v)) {
           result = c.remove(-v)::result
         }
       }
-       */
-
+      /*
       for (c <- cs) {
-        if (!c.containsAny(unitVars)) {
+        if (!c.containsAnyOf(unitVars)) {
           result = c.removeAllOccur(unitVars.map(-_))::result
         }
       }
+       */
       /*
-      val result = for { c <- cs if !c.containsAny(unitVars) }
+      val result = for { c <- cs if !c.containsAnyOf(unitVars) }
                    yield c.removeAllOccur(unitVars.map(-_))
        */
       (Formula(result), asnmt)
@@ -90,7 +90,7 @@ object CNF {
     def containsPure: Boolean = pureVars.size != 0
     def elimPure(): (Formula, Assgn) = {
       val asnmt = varsToAssignment(pureVars)
-      val result = for { c <- cs } yield c.removeAllOccur(pureVars)
+      val result = cs.filter(!_.containsAnyOf(pureVars))
       (Formula(result), asnmt)
     }
 
@@ -99,6 +99,8 @@ object CNF {
     def assign(v: Int, b: Boolean): Formula = {
       Formula((for (c <- cs) yield c.assign(v, b)).filter(_.nonEmpty).map(_.get))
     }
+
+    override def toString = s"(${cs.mkString(" ∧ ")})"
   }
 
   def parseLines(lines: Iterator[String]): Formula = {
@@ -109,8 +111,6 @@ object CNF {
       assert(ns.last == 0)
       Clause(ns.dropRight(1))
     }
-    //println(s"#variables: ${f.allVars.groupBy(abs).size}")
-    //println(s"#clauses:   ${f.cs.size}")
     Formula(cs.toList)
   }
 
@@ -126,7 +126,6 @@ object DPLL {
 
   type Asn = Map[Int, Boolean]
 
-  // Valid on uuf/uf/50
   def dpll_naive(f: Formula, assgn: Asn): Option[Asn] = {
     if (f.containsMtClause) return None
     if (f.isEmpty) return Some(assgn)
@@ -172,15 +171,14 @@ object DPLL {
     else {
       val v = f.pick
       dpll_cps(f.assign(v → true), assgn+(v→true), (a) => a match {
-                 case None => dpll_cps(f.assign(v → false), assgn+(v→false), k)
+                 case None => dpll_cps(f.assign(v→false), assgn+(v→false), k)
                  case a => k(a)
                })
     }
   }
 
-  //def solve(f: Formula): Option[Map[Int, Boolean]] = dpll_cps(f, Map[Int, Boolean](), (a) => a) match {
   def solve(f: Formula): Option[Map[Int, Boolean]] =
-    dpll_naive(f, Map[Int, Boolean]()) match {
+    dpll(f, Map[Int, Boolean]()) match {
       case Some(m) => Some(m.map({ case (v, b) => if (v < 0) (-v, !b) else (v, b) }))
       case None => None
     }
@@ -223,9 +221,8 @@ object DPLLTest extends App {
   //println(solve(example_2))
   //println(Clause(List(1,2,3,4,-1,-2,-3)).removeAllOccur(List(1,2,4)))
 
-  val cnf3 = parseFromResource("uf20-91/uf20-010.cnf") //SAT
-  println(solve(cnf3))
-
+  //val cnf3 = parseFromResource("uf20-91/uf20-010.cnf") //SAT
+  //println(solve(cnf3))
 
   val uf50: List[String] = getCNFFromFolder("/home/kraks/research/sat/src/main/resources/uf50-218")
   for (f <- uf50) {
@@ -233,6 +230,7 @@ object DPLLTest extends App {
     val cnf = parseFromPath(f)
     assert(solve(cnf).nonEmpty)
   }
+
   val uuf50: List[String] = getCNFFromFolder("/home/kraks/research/sat/src/main/resources/uuf50-218")
   for (f <- uuf50) {
     println(f)
@@ -241,9 +239,18 @@ object DPLLTest extends App {
   }
 
   /*
-   val cnf1 = parseFromResource("uuf50-218/uuf50-01.cnf") //UNSAT
-   println(solve(cnf1))
-  val cnf2 = parseFromResource("uf200-860/uf200-01.cnf") //SAT
-  println(solve(cnf2))
+   val uuf200: List[String] = getCNFFromFolder("/home/kraks/research/sat/src/main/resources/uuf200-860").take(50)
+   for (f <- uuf200) {
+   println(f)
+   val cnf = parseFromPath(f)
+   assert(solve(cnf).isEmpty)
+   }
+   val uf200: List[String] = getCNFFromFolder("/home/kraks/research/sat/src/main/resources/uf200-860").take(50)
+   for (f <- uf200) {
+   println(f)
+   val cnf = parseFromPath(f)
+   assert(solve(cnf).nonEmpty)
+   }
+
    */
 }
