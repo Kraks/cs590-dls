@@ -35,7 +35,7 @@ object CNF {
     def assign(v: Int, b: Boolean): Option[Clause] = {
       var new_xs = List[Int]()
       for (x <- xs) {
-        if (abs(x) == abs(v)) { if ((x > 0) == b) return None }
+        if (abs(x) == abs(v)) { if ((x > 0) == b) return None } // This clause is sat.
         else { new_xs = x::new_xs }
       }
       Some(Clause(new_xs))
@@ -65,10 +65,7 @@ object CNF {
     def elimSingleUnit: (Formula, Assgn) = {
       val v = unitVars(0)
       val asnmt = if (v > 0) Map(v → true) else Map(-v → false)
-      var result: List[Clause] = List()
-      for (c <- cs) {
-        if (!c.contains(v)) { result = c.remove(-v)::result }
-      }
+      val result = for (c <- cs if !c.contains(v)) yield c.remove(-v)
       (Formula(result), asnmt)
     }
     def elimUnit: (Formula, Assgn) = {
@@ -89,11 +86,10 @@ object CNF {
 
     def pick: Int = cs.head.xs.head
     def assign(vb: (Int, Boolean)): Formula = assign(vb._1, vb._2)
-    def assign(v: Int, b: Boolean): Formula = {
+    def assign(v: Int, b: Boolean): Formula =
       Formula((for (c <- cs) yield c.assign(v, b)).filter(_.nonEmpty).map(_.get))
-    }
 
-    override def toString = s"(${cs.mkString(" ∧ ")})"
+    override def toString = s"(${cs.mkString(" ∧ ")}"
   }
 
   def parseLines(lines: Iterator[String]): Formula = {
@@ -119,11 +115,16 @@ object DPLL {
 
   type Asn = Map[Int, Boolean]
 
+  /* A naive DPLL implementation just uses unit propogation
+   * for single variables once a time; the pure variables
+   * elimination and assignment are implemented by adding
+   * a new unit clause.
+   */
   def dpll_naive(f: Formula, assgn: Asn): Option[Asn] = {
     if (f.containsMtClause) return None
     if (f.isEmpty) return Some(assgn)
     if (f.containsUnit) {
-      val (new_f, new_assgn) = f.elimUnit
+      val (new_f, new_assgn) = f.elimSingleUnit
       return dpll_naive(new_f, assgn ++ new_assgn)
     }
     if (f.containsPure) return dpll_naive(f.addSingletonClause(f.pureVars(0)), assgn)
@@ -133,6 +134,11 @@ object DPLL {
     else dpll_naive(f.addSingletonClause(-v), assgn)
   }
 
+  /* This DPLL uses multi-variable unit propogation, as well as
+   * pure variable elimination on multi-variables.
+   * The assignment is implemented as eliminating a variable
+   * in a clause.
+   */
   def dpll(f: Formula, assgn: Asn): Option[Asn] = {
     if (f.containsMtClause) return None
     if (f.isEmpty) return Some(assgn)
@@ -150,6 +156,8 @@ object DPLL {
     else dpll(f.assign(v→false), assgn+(v→false))
   }
 
+  /* The CPS implementation of `dpll`.
+   */
   def dpll_cps(f: Formula, assgn: Asn, k: Option[Asn] => Option[Asn]): Option[Asn] = {
     if (f.containsMtClause) return k(None)
     if (f.isEmpty) return k(Some(assgn))
@@ -163,10 +171,9 @@ object DPLL {
     }
     else {
       val v = f.pick
-      dpll_cps(f.assign(v → true), assgn+(v→true), (a) => a match {
-                 case None => dpll_cps(f.assign(v→false), assgn+(v→false), k)
-                 case a => k(a)
-               })
+      dpll_cps(f.assign(v → true), assgn+(v→true), (a) =>
+        if (a.isEmpty) dpll_cps(f.assign(v→false), assgn+(v→false), k) else k(a)
+      )
     }
   }
 
