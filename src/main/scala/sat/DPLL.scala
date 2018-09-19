@@ -224,21 +224,33 @@ object DPLLTest extends App {
   //val cnf3 = parseFromResource("uf20-91/uf20-010.cnf") //SAT
   //println(solve(cnf3))
 
-  val uf50: List[String] = getCNFFromFolder("src/main/resources/uf50-218")
-  for (f <- uf50) {
+  val uuf100: List[String] = getCNFFromFolder("src/main/resources/uuf100-430")
+  for (f <- uuf100) {
+    println(f)
+    val cnf = parseFromPath(f)
+    assert(solve(cnf).isEmpty)
+  }
+  val uf100: List[String] = getCNFFromFolder("src/main/resources/uf100-430")
+  for (f <- uf100) {
     println(f)
     val cnf = parseFromPath(f)
     assert(solve(cnf).nonEmpty)
   }
 
-  val uuf50: List[String] = getCNFFromFolder("src/main/resources/uuf50-218")
-  for (f <- uuf50) {
-    println(f)
-    val cnf = parseFromPath(f)
-    assert(solve(cnf).isEmpty)
-  }
-
   /*
+   val uf50: List[String] = getCNFFromFolder("src/main/resources/uf50-218")
+   for (f <- uf50) {
+   println(f)
+   val cnf = parseFromPath(f)
+   assert(solve(cnf).nonEmpty)
+   }
+
+   val uuf50: List[String] = getCNFFromFolder("src/main/resources/uuf50-218")
+   for (f <- uuf50) {
+   println(f)
+   val cnf = parseFromPath(f)
+   assert(solve(cnf).isEmpty)
+   }
   val uuf200: List[String] = getCNFFromFolder("src/main/resources/uuf200-860").take(50)
   for (f <- uuf200) {
     println(f)
