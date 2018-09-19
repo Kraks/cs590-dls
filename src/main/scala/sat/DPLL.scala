@@ -62,33 +62,26 @@ object CNF {
     def containsMtClause: Boolean = cs.contains(Clause(List()))
 
     def containsUnit: Boolean = unitVars.size != 0
-    def elimUnit(): (Formula, Assgn) = {
-      //println(s"eliminating unit vars: $unitVars")
-      //val asnmt = varsToAssignment(unitVars)
+    def elimSingleUnit: (Formula, Assgn) = {
       val v = unitVars(0)
       val asnmt = if (v > 0) Map(v → true) else Map(-v → false)
       var result: List[Clause] = List()
       for (c <- cs) {
-        if (!c.contains(v)) {
-          result = c.remove(-v)::result
-        }
+        if (!c.contains(v)) { result = c.remove(-v)::result }
       }
-      /*
-      for (c <- cs) {
-        if (!c.containsAnyOf(unitVars)) {
-          result = c.removeAllOccur(unitVars.map(-_))::result
-        }
-      }
-       */
-      /*
+      (Formula(result), asnmt)
+    }
+    def elimUnit: (Formula, Assgn) = {
+      if (unitVars.groupBy(abs).exists(_._2.size == 2))
+        return (Formula(List(Clause(List()))), Map())
+      val asnmt = varsToAssignment(unitVars)
       val result = for { c <- cs if !c.containsAnyOf(unitVars) }
                    yield c.removeAllOccur(unitVars.map(-_))
-       */
       (Formula(result), asnmt)
     }
 
     def containsPure: Boolean = pureVars.size != 0
-    def elimPure(): (Formula, Assgn) = {
+    def elimPure: (Formula, Assgn) = {
       val asnmt = varsToAssignment(pureVars)
       val result = cs.filter(!_.containsAnyOf(pureVars))
       (Formula(result), asnmt)
@@ -200,10 +193,9 @@ object CNF_Examples {
                                Clause(List(-3)), Clause(List(2, 5)),
                                Clause(List(-5)), Clause(List(1))))
 
-  val example_2 = Formula(List(Clause(List(1, 2)),
-                               Clause(List(-2)),
+  val example_2 = Formula(List(Clause(List(1)),
                                Clause(List(-1)),
-                               Clause(List(3, 1))))
+                               Clause(List(1, 2))))
 }
 
 object DPLLTest extends App {
@@ -239,18 +231,18 @@ object DPLLTest extends App {
   }
 
   /*
-   val uuf200: List[String] = getCNFFromFolder("/home/kraks/research/sat/src/main/resources/uuf200-860").take(50)
-   for (f <- uuf200) {
-   println(f)
-   val cnf = parseFromPath(f)
-   assert(solve(cnf).isEmpty)
-   }
-   val uf200: List[String] = getCNFFromFolder("/home/kraks/research/sat/src/main/resources/uf200-860").take(50)
-   for (f <- uf200) {
-   println(f)
-   val cnf = parseFromPath(f)
-   assert(solve(cnf).nonEmpty)
-   }
-
+  val uuf200: List[String] = getCNFFromFolder("/home/kraks/research/sat/src/main/resources/uuf200-860").take(50)
+  for (f <- uuf200) {
+    println(f)
+    val cnf = parseFromPath(f)
+    assert(solve(cnf).isEmpty)
+  }
+  val uf200: List[String] = getCNFFromFolder("/home/kraks/research/sat/src/main/resources/uf200-860").take(50)
+  for (f <- uf200) {
+    println(f)
+    val cnf = parseFromPath(f)
+    assert(solve(cnf).nonEmpty)
+  }
    */
+
 }
