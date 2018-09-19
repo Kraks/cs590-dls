@@ -6,14 +6,14 @@ import scala.io.Source
 import scala.annotation._
 
 object Utils {
-  def getListOfFiles(dir: String, ext: String): List[File] = {
-    val d = new File(dir)
-    if (d.exists && d.isDirectory)
-      d.listFiles.filter(_.isFile).filter(_.getName.endsWith(ext)).toList
+  def getListOfFiles(d: File, ext: String): List[File] = {
+    if (d.exists && d.isDirectory) d.listFiles.filter(_.isFile).filter(_.getName.endsWith(ext)).toList
     else List[File]()
   }
+  def getListOfFiles(dirPath: String, ext: String): List[File] = getListOfFiles(new File(dirPath), ext)
 
   def getCNFFromFolder(dir: String): List[String] = getListOfFiles(dir, "cnf").map(_.getPath)
+  def getCNFFromFolder(d: File): List[String] = getListOfFiles(d, "cnf").map(_.getPath)
 }
 
 object CNF {
@@ -69,6 +69,7 @@ object CNF {
       (Formula(result), asnmt)
     }
     def elimUnit: (Formula, Assgn) = {
+      //println(s"elim unit: $unitVars")
       if (unitVars.groupBy(abs).exists(_._2.size == 2))
         return (Formula(List(Clause(List()))), Map())
       val asnmt = varsToAssignment(unitVars)
@@ -223,14 +224,14 @@ object DPLLTest extends App {
   //val cnf3 = parseFromResource("uf20-91/uf20-010.cnf") //SAT
   //println(solve(cnf3))
 
-  val uf50: List[String] = getCNFFromFolder("/home/kraks/research/sat/src/main/resources/uf50-218")
+  val uf50: List[String] = getCNFFromFolder("src/main/resources/uf50-218")
   for (f <- uf50) {
     println(f)
     val cnf = parseFromPath(f)
     assert(solve(cnf).nonEmpty)
   }
 
-  val uuf50: List[String] = getCNFFromFolder("/home/kraks/research/sat/src/main/resources/uuf50-218")
+  val uuf50: List[String] = getCNFFromFolder("src/main/resources/uuf50-218")
   for (f <- uuf50) {
     println(f)
     val cnf = parseFromPath(f)
@@ -238,18 +239,17 @@ object DPLLTest extends App {
   }
 
   /*
-  val uuf200: List[String] = getCNFFromFolder("/home/kraks/research/sat/src/main/resources/uuf200-860").take(50)
+  val uuf200: List[String] = getCNFFromFolder("src/main/resources/uuf200-860").take(50)
   for (f <- uuf200) {
     println(f)
     val cnf = parseFromPath(f)
     assert(solve(cnf).isEmpty)
   }
-  val uf200: List[String] = getCNFFromFolder("/home/kraks/research/sat/src/main/resources/uf200-860").take(50)
+  val uf200: List[String] = getCNFFromFolder("src/main/resources/uf200-860").take(50)
   for (f <- uf200) {
     println(f)
     val cnf = parseFromPath(f)
     assert(solve(cnf).nonEmpty)
   }
    */
-
 }
