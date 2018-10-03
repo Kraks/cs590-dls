@@ -69,8 +69,8 @@ object CNF {
       val result = for (c <- cs if !c.contains(v)) yield c.remove(-v)
       (Formula(result), asnmt)
     }
+
     def elimUnit: (Formula, Assgn) = {
-      //println(s"elim unit: $unitVars")
       if (unitVars.groupBy(abs).exists(_._2.size == 2))
         return (Formula(List(Clause(List()))), Map())
       val asnmt = varsToAssignment(unitVars)
@@ -87,7 +87,7 @@ object CNF {
     }
 
     def pickFirst: Int = cs.head.xs.head
-    def pickRandom: Int = Random.shuffle(Random.shuffle(cs).head.xs).head
+    def pickRandom: Int = Random.shuffle(cs.head.xs).head
 
     def assign(vb: (Int, Boolean)): Formula = assign(vb._1, vb._2)
     def assign(v: Int, b: Boolean): Formula =
@@ -254,16 +254,16 @@ object DPLLTest extends App {
 
    val uf50: List[String] = getCNFFromFolder("src/main/resources/uf50-218")
    for (f <- uf50) {
-   println(f)
-   val cnf = parseFromPath(f)
-   assert(solve(cnf).nonEmpty)
+     println(f)
+     val cnf = parseFromPath(f)
+     assert(solve(cnf).nonEmpty)
    }
 
    val uuf50: List[String] = getCNFFromFolder("src/main/resources/uuf50-218")
    for (f <- uuf50) {
-   println(f)
-   val cnf = parseFromPath(f)
-   assert(solve(cnf).isEmpty)
+     println(f)
+     val cnf = parseFromPath(f)
+     assert(solve(cnf).isEmpty)
    }
 
   /*
