@@ -4,6 +4,7 @@ import math._
 import java.io.File
 import scala.io.Source
 import scala.annotation._
+import scala.util.Random
 
 object Utils {
   def getListOfFiles(d: File, ext: String): List[File] = {
@@ -85,7 +86,9 @@ object CNF {
       (Formula(result), asnmt)
     }
 
-    def pick: Int = cs.head.xs.head
+    def pickFirst: Int = cs.head.xs.head
+    def pickRandom: Int = Random.shuffle(Random.shuffle(cs).head.xs).head
+
     def assign(vb: (Int, Boolean)): Formula = assign(vb._1, vb._2)
     def assign(v: Int, b: Boolean): Formula =
       Formula((for (c <- cs) yield c.assign(v, b)).filter(_.nonEmpty).map(_.get))
@@ -129,7 +132,7 @@ object DPLL {
       return dpll_naive(new_f, assgn ++ new_assgn)
     }
     if (f.containsPure) return dpll_naive(f.addSingletonClause(f.pureVars(0)), assgn)
-    val v = f.pick
+    val v = f.pickFirst
     val tryTrue = dpll_naive(f.addSingletonClause(v), assgn)
     if (tryTrue.nonEmpty) tryTrue
     else dpll_naive(f.addSingletonClause(-v), assgn)
@@ -151,7 +154,7 @@ object DPLL {
       val (new_f, new_assgn) = f.elimPure
       return dpll(new_f, assgn ++ new_assgn)
     }
-    val v = f.pick
+    val v = f.pickFirst
     val tryTrue = dpll(f.assign(v→true), assgn+(v→true))
     if (tryTrue.nonEmpty) tryTrue
     else dpll(f.assign(v→false), assgn+(v→false))
@@ -171,19 +174,21 @@ object DPLL {
       dpll_naive_cps(f.addSingletonClause(f.pureVars(0)), assgn, sc, fc)
     }
     else {
-      val v = f.pick
+      val v = f.pickFirst
       dpll_naive_cps(f.assign(v→true), assgn+(v→true), sc,
         () => dpll_naive_cps(f.assign(v→false), assgn+(v→false), sc, fc))
     }
   }
 
   /* Defunctionalized DPLL */
+  /*
   type DSC = ???
   type DFC = ???
   case class State(f: Formula, assgn: Asn, dsc: DSC, dfc: DFC)
   def ddpll_navie_step(s: State): State = {
     ???
   }
+  */
 
   def solve(f: Formula): Option[Map[Int, Boolean]] =
     dpll_naive_cps(f, Map[Int, Boolean](), (a, fc) => a, () => None) match {
