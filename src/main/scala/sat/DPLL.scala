@@ -32,8 +32,8 @@ object CNF {
     }
     def removeAllOccur(vs: List[Lit]): Clause = Clause(xs.filter(!vs.contains(_)))
 
-    def assign(vb: (Int, Boolean)): Option[Clause] = assign(vb._1, vb._2)
-    def assign(v: Int, b: Boolean): Option[Clause] = {
+    def assign(vb: (Lit, Boolean)): Option[Clause] = assign(vb._1, vb._2)
+    def assign(v: Lit, b: Boolean): Option[Clause] = {
       var new_xs = List[Lit]()
       for (x <- xs) {
         if (abs(x) == abs(v)) { if ((x > 0) == b) return None } // This clause is sat.
@@ -53,8 +53,8 @@ object CNF {
     lazy val unitVars = cs.filter(_.size == 1).map(_.xs.head).toSet.toList
     lazy val pureVars = allVars.groupBy(abs).filter(_._2.size==1).values.flatten.toList
 
-    private def varsToAssignment(vars: Iterable[Int]) =
-      vars.map((x:Int) => if (x>0) (x→true) else (-x→false)).toMap
+    private def varsToAssignment(vars: Iterable[Lit]) =
+      vars.map((x:Lit) => if (x>0) (x→true) else (-x→false)).toMap
 
     def addClause(c: Clause): Formula = Formula(c::cs)
     def addSingletonClause(x: Int): Formula = Formula(Clause(List(x))::cs)
@@ -86,20 +86,23 @@ object CNF {
       (Formula(result), asnmt)
     }
 
-    def pickFirst: Int = cs.head.xs.head
-    def pickRandom: Int = Random.shuffle(cs.head.xs).head
+    def pickFirst: Lit = cs.head.xs.head
+    def pickRandom: Lit = Random.shuffle(cs.head.xs).head
 
     def assign(vb: (Int, Boolean)): Formula = assign(vb._1, vb._2)
-    def assign(v: Int, b: Boolean): Formula =
+    def assign(v: Lit, b: Boolean): Formula =
       Formula((for (c <- cs) yield c.assign(v, b)).filter(_.nonEmpty).map(_.get))
 
     override def toString = s"(${cs.mkString(" ∧ ")}"
   }
+}
 
+object DIMACSParser {
+  import CNF._
   def parseLines(lines: Iterator[String]): Formula = {
     val cs = for (line <- lines if
                   !(line.startsWith("c") || line.startsWith("p") ||
-                    line.startsWith("0") || line.startsWith("%") || line.isEmpty)) yield {
+                      line.startsWith("0") || line.startsWith("%") || line.isEmpty)) yield {
       val ns = line.split(" ").filter(_.nonEmpty).map(_.toInt).toList
       assert(ns.last == 0)
       Clause(ns.dropRight(1))
@@ -160,8 +163,8 @@ object DPLL {
     else dpll(f.assign(v→false), assgn+(v→false))
   }
 
-  /* The CPS implementation of `dpll`. */
-  type Cont = () => Option[Asn]
+  /* The CPS implementation of `dpll_naive`. */
+  type Cont = () ⇒ Option[Asn]
   def dpll_naive_cps(f: Formula, assgn: Asn, fc: Cont): Option[Asn] = {
     if (f.containsMtClause) return fc()
     if (f.isEmpty) return Some(assgn)
@@ -175,7 +178,7 @@ object DPLL {
     else {
       val v = f.pickFirst
       dpll_naive_cps(f.assign(v→true), assgn+(v→true),
-        () => dpll_naive_cps(f.assign(v→false), assgn+(v→false), fc))
+        () ⇒ dpll_naive_cps(f.assign(v→false), assgn+(v→false), fc))
     }
   }
 
@@ -183,7 +186,8 @@ object DPLL {
   type DeCont = List[(Lit, Formula, Asn)]
   case class State(f: Formula, assgn: Asn, fc: DeCont)
   def applyBacktrack(s: State): State = s.fc match {
-    case (v, f, assgn)::tl => State(f.assign(v -> false), assgn+(v -> false), tl)
+    case (v, f, assgn)::tl ⇒
+      State(f.assign(v→false), assgn+(v→false), tl)
   }
   def applyUnit(s: State): State = s match { case State(f, assgn, fc) =>
     val (new_f, new_assgn) = f.elimSingleUnit
@@ -199,7 +203,7 @@ object DPLL {
     else if (f.containsPure) applyPure(s)
     else {
       val v = f.pickFirst
-      State(f.assign(v -> true), assgn+(v -> true), (v, f, assgn)::fc)
+      State(f.assign(v→true), assgn+(v→true), (v, f, assgn)::fc)
     }
   }
   def drive(s: State): Option[Asn] = s match {
@@ -210,7 +214,7 @@ object DPLL {
   def inject(f: Formula): State = State(f, Map[Int, Boolean](), List())
   /* Defunctionalized DPLL */
 
-  def solve(f: Formula): Option[Map[Int, Boolean]] =
+  def solve(f: Formula): Option[Asn] =
     drive(inject(f)) match {
     //dpll_naive_cps(f, Map[Int, Boolean](), () => None) match {
     //dpll(f, Map[Int, Boolean]()) match {
@@ -219,7 +223,7 @@ object DPLL {
     }
 }
 
-object CNF_Examples {
+object CNFExamples {
   import CNF._
   /** (x1 ∨ x2 ∨ -x3 ∨ x6) ∧
     * (-x2 ∨ x4) ∧
@@ -243,8 +247,9 @@ object CNF_Examples {
 object DPLLTest extends App {
   import CNF._
   import DPLL._
-  import CNF_Examples._
   import Utils._
+  import DIMACSParser._
+  import CNFExamples._
 
   println("DPLL")
   //println(example_f.elimUnit._1.elimUnit)
@@ -257,7 +262,7 @@ object DPLLTest extends App {
 
   //val cnf3 = parseFromResource("uf20-91/uf20-010.cnf") //SAT
   //println(solve(cnf3))
-  
+
   /*
   val uuf100: List[String] = getCNFFromFolder("src/main/resources/uuf100-430")
   for (f <- uuf100) {
