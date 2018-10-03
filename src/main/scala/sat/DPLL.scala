@@ -157,29 +157,37 @@ object DPLL {
     else dpll(f.assign(v→false), assgn+(v→false))
   }
 
-  /* The CPS implementation of `dpll`.
-   */
-  def dpll_cps(f: Formula, assgn: Asn, k: Option[Asn] => Option[Asn]): Option[Asn] = {
-    if (f.containsMtClause) return k(None)
-    if (f.isEmpty) return k(Some(assgn))
+  /* The CPS implementation of `dpll`. */
+  type SC = (Option[Asn], FC) => Option[Asn]
+  type FC = () => Option[Asn]
+  def dpll_naive_cps(f: Formula, assgn: Asn, sc: SC, fc: FC): Option[Asn] = {
+    if (f.containsMtClause) return fc()
+    if (f.isEmpty) return sc(Some(assgn), fc)
     if (f.containsUnit) {
-      val (new_f, new_assgn) = f.elimUnit
-      dpll_cps(new_f, assgn ++ new_assgn, k)
+      val (new_f, new_assgn) = f.elimSingleUnit
+      dpll_naive_cps(new_f, assgn ++ new_assgn, sc, fc)
     }
     else if (f.containsPure) {
-      val (new_f, new_assgn) = f.elimPure
-      dpll_cps(new_f, assgn ++ new_assgn, k)
+      dpll_naive_cps(f.addSingletonClause(f.pureVars(0)), assgn, sc, fc)
     }
     else {
       val v = f.pick
-      dpll_cps(f.assign(v → true), assgn+(v→true), (a) =>
-        if (a.isEmpty) dpll_cps(f.assign(v→false), assgn+(v→false), k) else k(a)
-      )
+      dpll_naive_cps(f.assign(v→true), assgn+(v→true), sc,
+        () => dpll_naive_cps(f.assign(v→false), assgn+(v→false), sc, fc))
     }
   }
 
+  /* Defunctionalized DPLL */
+  type DSC = ???
+  type DFC = ???
+  case class State(f: Formula, assgn: Asn, dsc: DSC, dfc: DFC)
+  def ddpll_navie_step(s: State): State = {
+    ???
+  }
+
   def solve(f: Formula): Option[Map[Int, Boolean]] =
-    dpll(f, Map[Int, Boolean]()) match {
+    dpll_naive_cps(f, Map[Int, Boolean](), (a, fc) => a, () => None) match {
+    //dpll(f, Map[Int, Boolean]()) match {
       case Some(m) => Some(m.map({ case (v, b) => if (v < 0) (-v, !b) else (v, b) }))
       case None => None
     }
@@ -223,7 +231,8 @@ object DPLLTest extends App {
 
   //val cnf3 = parseFromResource("uf20-91/uf20-010.cnf") //SAT
   //println(solve(cnf3))
-
+  
+  /*
   val uuf100: List[String] = getCNFFromFolder("src/main/resources/uuf100-430")
   for (f <- uuf100) {
     println(f)
@@ -236,8 +245,8 @@ object DPLLTest extends App {
     val cnf = parseFromPath(f)
     assert(solve(cnf).nonEmpty)
   }
+  */
 
-  /*
    val uf50: List[String] = getCNFFromFolder("src/main/resources/uf50-218")
    for (f <- uf50) {
    println(f)
@@ -251,6 +260,8 @@ object DPLLTest extends App {
    val cnf = parseFromPath(f)
    assert(solve(cnf).isEmpty)
    }
+
+  /*
   val uuf200: List[String] = getCNFFromFolder("src/main/resources/uuf200-860").take(50)
   for (f <- uuf200) {
     println(f)
