@@ -20,21 +20,21 @@ object Utils {
 object CNF {
   type Assgn = Map[Int, Boolean]
 
-  case class Var(x: Int)
+  type Lit = Int
 
-  case class Clause(xs: List[Int]) {
+  case class Clause(xs: List[Lit]) {
     def size = xs.size
-    def contains(v: Int): Boolean = xs.contains(v)
-    def remove(v: Int): Clause = Clause(xs.filter(_ != v))
-    def containsAnyOf(vs: List[Int]): Boolean = {
+    def contains(v: Lit): Boolean = xs.contains(v)
+    def remove(v: Lit): Clause = Clause(xs.filter(_ != v))
+    def containsAnyOf(vs: List[Lit]): Boolean = {
       for (v <- vs) { if (xs.contains(v)) return true }
       return false
     }
-    def removeAllOccur(vs: List[Int]): Clause = Clause(xs.filter(!vs.contains(_)))
+    def removeAllOccur(vs: List[Lit]): Clause = Clause(xs.filter(!vs.contains(_)))
 
     def assign(vb: (Int, Boolean)): Option[Clause] = assign(vb._1, vb._2)
     def assign(v: Int, b: Boolean): Option[Clause] = {
-      var new_xs = List[Int]()
+      var new_xs = List[Lit]()
       for (x <- xs) {
         if (abs(x) == abs(v)) { if ((x > 0) == b) return None } // This clause is sat.
         else { new_xs = x::new_xs }
@@ -161,37 +161,58 @@ object DPLL {
   }
 
   /* The CPS implementation of `dpll`. */
-  type SC = (Option[Asn], FC) => Option[Asn]
-  type FC = () => Option[Asn]
-  def dpll_naive_cps(f: Formula, assgn: Asn, sc: SC, fc: FC): Option[Asn] = {
+  type Cont = () => Option[Asn]
+  def dpll_naive_cps(f: Formula, assgn: Asn, fc: Cont): Option[Asn] = {
     if (f.containsMtClause) return fc()
-    if (f.isEmpty) return sc(Some(assgn), fc)
+    if (f.isEmpty) return Some(assgn)
     if (f.containsUnit) {
       val (new_f, new_assgn) = f.elimSingleUnit
-      dpll_naive_cps(new_f, assgn ++ new_assgn, sc, fc)
+      dpll_naive_cps(new_f, assgn ++ new_assgn, fc)
     }
     else if (f.containsPure) {
-      dpll_naive_cps(f.addSingletonClause(f.pureVars(0)), assgn, sc, fc)
+      dpll_naive_cps(f.addSingletonClause(f.pureVars(0)), assgn, fc)
     }
     else {
       val v = f.pickFirst
-      dpll_naive_cps(f.assign(v→true), assgn+(v→true), sc,
-        () => dpll_naive_cps(f.assign(v→false), assgn+(v→false), sc, fc))
+      dpll_naive_cps(f.assign(v→true), assgn+(v→true),
+        () => dpll_naive_cps(f.assign(v→false), assgn+(v→false), fc))
     }
   }
 
   /* Defunctionalized DPLL */
-  /*
-  type DSC = ???
-  type DFC = ???
-  case class State(f: Formula, assgn: Asn, dsc: DSC, dfc: DFC)
-  def ddpll_navie_step(s: State): State = {
-    ???
+  type DeCont = List[(Lit, Formula, Asn)]
+  case class State(f: Formula, assgn: Asn, fc: DeCont)
+  def applyBacktrack(s: State): State = s.fc match {
+    case (v, f, assgn)::tl => State(f.assign(v -> false), assgn+(v -> false), tl)
   }
-  */
+  def applyUnit(s: State): State = s match { case State(f, assgn, fc) =>
+    val (new_f, new_assgn) = f.elimSingleUnit
+    State(new_f, new_assgn, fc)
+  }
+  def applyPure(s: State): State = s match { case State(f, assgn, fc) =>
+    State(f.addSingletonClause(f.pureVars(0)), assgn, fc)
+  }
+
+  def ddpll_navie_step(s: State): State = s match { case State(f, assgn, fc) =>
+    if (f.containsMtClause) applyBacktrack(s)
+    else if (f.containsUnit) applyUnit(s)
+    else if (f.containsPure) applyPure(s)
+    else {
+      val v = f.pickFirst
+      State(f.assign(v -> true), assgn+(v -> true), (v, f, assgn)::fc)
+    }
+  }
+  def drive(s: State): Option[Asn] = s match {
+    case State(f, asn, fc)  if f.isEmpty => Some(asn)
+    case State(f, asn, Nil) if f.containsMtClause => None
+    case s => drive(ddpll_navie_step(s))
+  }
+  def inject(f: Formula): State = State(f, Map[Int, Boolean](), List())
+  /* Defunctionalized DPLL */
 
   def solve(f: Formula): Option[Map[Int, Boolean]] =
-    dpll_naive_cps(f, Map[Int, Boolean](), (a, fc) => a, () => None) match {
+    drive(inject(f)) match {
+    //dpll_naive_cps(f, Map[Int, Boolean](), () => None) match {
     //dpll(f, Map[Int, Boolean]()) match {
       case Some(m) => Some(m.map({ case (v, b) => if (v < 0) (-v, !b) else (v, b) }))
       case None => None
