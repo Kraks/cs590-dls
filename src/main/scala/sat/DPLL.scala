@@ -247,6 +247,7 @@ case object DefuncDPLL extends Solver {
 }
 
 case object NdDefuncDPLL extends Solver {
+  /* Non-deterministic defunctionalized DPLL */
   case class State(f: Formula, assgn: Asn)
 
   def applyUnit(s: State): State = s match { case State(f, assgn) =>
@@ -276,11 +277,13 @@ case object NdDefuncDPLL extends Solver {
 
   def inject(f: Formula): State = State(f, Map[Int, Boolean]())
 
-  def solve(f: Formula): Option[Asn] = drive(Set(inject(f)))
-
+  def solve(f: Formula): Option[Asn] = drive(Set(inject(f))) match {
+    case Some(m) => Some(m.map({ case (v, b) => if (v < 0) (-v, !b) else (v, b) }))
+    case None => None
+  }
 }
 
-object CNFExamples extends {
+object CNFExamples {
   /** (x1 ∨ x2 ∨ -x3 ∨ x6) ∧
     * (-x2 ∨ x4) ∧
     * (-x1 ∨ -x5) ∧
@@ -304,6 +307,8 @@ object DPLLTest extends App {
   import Utils._
   import DIMACSParser._
   import CNFExamples._
+
+  val solve = NdDefuncDPLL.solve _
 
   //println("DPLL")
   //println(example_f.elimUnit._1.elimUnit)
@@ -332,8 +337,6 @@ object DPLLTest extends App {
   }
   */
 
-  //val solve = DefuncDPLL.solve _
-  val solve = NdDefuncDPLL.solve _
   val uf50: List[String] = getCNFFromFolder("src/main/resources/uf50-218")
   for (f <- uf50) {
     println(f)
