@@ -36,7 +36,7 @@ object CNF {
     def assign(v: Lit, b: Boolean): Option[Clause] = {
       var new_xs = List[Lit]()
       for (x <- xs) {
-        if (abs(x) == abs(v)) { if ((x > 0) == b) return None } // This clause is sat.
+        if (abs(x) == abs(v)) { if ((x > 0) == b) return None } // This clause is satisfied.
         else { new_xs = x::new_xs }
       }
       Some(Clause(new_xs))
@@ -60,9 +60,9 @@ object CNF {
     def addSingletonClause(x: Int): Formula = Formula(Clause(List(x))::cs)
 
     def isEmpty: Boolean = cs.isEmpty
-    def containsMtClause: Boolean = cs.contains(Clause(List()))
+    def hasUnsatClause: Boolean = cs.contains(Clause(List()))
 
-    def containsUnit: Boolean = unitVars.size != 0
+    def hasUnitClause: Boolean = unitVars.size != 0
     def elimSingleUnit: (Formula, Assgn) = {
       val v = unitVars(0)
       val asnmt = if (v > 0) Map(v → true) else Map(-v → false)
@@ -79,7 +79,7 @@ object CNF {
       (Formula(result), asnmt)
     }
 
-    def containsPure: Boolean = pureVars.size != 0
+    def hasPureClause: Boolean = pureVars.size != 0
     def elimPure: (Formula, Assgn) = {
       val asnmt = varsToAssignment(pureVars)
       val result = cs.filter(!_.containsAnyOf(pureVars))
@@ -128,13 +128,13 @@ object DPLL {
    * a new unit clause.
    */
   def dpll_naive(f: Formula, assgn: Asn): Option[Asn] = {
-    if (f.containsMtClause) return None
+    if (f.hasUnsatClause) return None
     if (f.isEmpty) return Some(assgn)
-    if (f.containsUnit) {
+    if (f.hasUnitClause) {
       val (new_f, new_assgn) = f.elimSingleUnit
       return dpll_naive(new_f, assgn ++ new_assgn)
     }
-    if (f.containsPure) return dpll_naive(f.addSingletonClause(f.pureVars(0)), assgn)
+    if (f.hasPureClause) return dpll_naive(f.addSingletonClause(f.pureVars(0)), assgn)
     val v = f.pickFirst
     val tryTrue = dpll_naive(f.addSingletonClause(v), assgn)
     if (tryTrue.nonEmpty) tryTrue
@@ -147,13 +147,13 @@ object DPLL {
    * in a clause.
    */
   def dpll(f: Formula, assgn: Asn): Option[Asn] = {
-    if (f.containsMtClause) return None
+    if (f.hasUnsatClause) return None
     if (f.isEmpty) return Some(assgn)
-    if (f.containsUnit) {
+    if (f.hasUnitClause) {
       val (new_f, new_assgn) = f.elimUnit
       return dpll(new_f, assgn ++ new_assgn)
     }
-    if (f.containsPure) {
+    if (f.hasPureClause) {
       val (new_f, new_assgn) = f.elimPure
       return dpll(new_f, assgn ++ new_assgn)
     }
@@ -166,13 +166,13 @@ object DPLL {
   /* The CPS implementation of `dpll_naive`. */
   type Cont = () ⇒ Option[Asn]
   def dpll_naive_cps(f: Formula, assgn: Asn, fc: Cont): Option[Asn] = {
-    if (f.containsMtClause) return fc()
+    if (f.hasUnsatClause) return fc()
     if (f.isEmpty) return Some(assgn)
-    if (f.containsUnit) {
+    if (f.hasUnitClause) {
       val (new_f, new_assgn) = f.elimSingleUnit
       dpll_naive_cps(new_f, assgn ++ new_assgn, fc)
     }
-    else if (f.containsPure) {
+    else if (f.hasPureClause) {
       dpll_naive_cps(f.addSingletonClause(f.pureVars(0)), assgn, fc)
     }
     else {
@@ -198,9 +198,9 @@ object DPLL {
   }
 
   def ddpll_navie_step(s: State): State = s match { case State(f, assgn, fc) =>
-    if (f.containsMtClause) applyBacktrack(s)
-    else if (f.containsUnit) applyUnit(s)
-    else if (f.containsPure) applyPure(s)
+    if (f.hasUnsatClause) applyBacktrack(s)
+    else if (f.hasUnitClause) applyUnit(s)
+    else if (f.hasPureClause) applyPure(s)
     else {
       val v = f.pickFirst
       State(f.assign(v→true), assgn+(v→true), (v, f, assgn)::fc)
@@ -208,7 +208,7 @@ object DPLL {
   }
   def drive(s: State): Option[Asn] = s match {
     case State(f, asn, fc)  if f.isEmpty => Some(asn)
-    case State(f, asn, Nil) if f.containsMtClause => None
+    case State(f, asn, Nil) if f.hasUnsatClause => None
     case s => drive(ddpll_navie_step(s))
   }
   def inject(f: Formula): State = State(f, Map[Int, Boolean](), List())
