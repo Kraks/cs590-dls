@@ -61,7 +61,7 @@ object CNFImp extends CNF {
     lazy val pureVars = allVars.groupBy(abs).filter(_._2.size==1).values.flatten.toSet.toList
 
     def addClause(c: Clause): Formula = Formula(c::cs)
-    def addSingletonClause(x: Int): Formula = Formula(Clause(List(x))::cs)
+    def addUnitClause(x: Int): Formula = Formula(Clause(List(x))::cs)
 
     def isEmpty: Boolean = cs.isEmpty
     def hasUnsatClause: Boolean = cs.contains(Clause(List()))
@@ -118,6 +118,9 @@ object DIMACSParser {
 
 trait Solver {
   def solve(f: Formula): Option[Asn]
+}
+
+object Solver {
   val mtAsn = List[Lit]()
   def varsToAssignment(vars: List[Lit]) =
     vars.map((x:Lit) => if (x>0) (x→true) else (-x→false)).toMap
@@ -136,14 +139,14 @@ case object DPLLNaive extends Solver {
       val (new_f, new_assgn) = f.elimSingleUnit
       return dpll_naive(new_f, assgn ++ new_assgn)
     }
-    if (f.hasPureClause) return dpll_naive(f.addSingletonClause(f.pureVars.head), assgn)
+    if (f.hasPureClause) return dpll_naive(f.addUnitClause(f.pureVars.head), assgn)
     val v = f.pickFirst
-    val tryTrue = dpll_naive(f.addSingletonClause(v), assgn)
+    val tryTrue = dpll_naive(f.addUnitClause(v), assgn)
     if (tryTrue.nonEmpty) tryTrue
-    else dpll_naive(f.addSingletonClause(-v), assgn)
+    else dpll_naive(f.addUnitClause(-v), assgn)
   }
 
-  def solve(f: Formula): Option[Asn] = dpll_naive(f, mtAsn)
+  def solve(f: Formula): Option[Asn] = dpll_naive(f, Solver.mtAsn)
 }
 
 case object DPLL extends Solver {
@@ -169,7 +172,7 @@ case object DPLL extends Solver {
     else dpll(f.assign(v→false), -v::assgn)
   }
 
-  def solve(f: Formula): Option[Asn] = dpll(f, mtAsn)
+  def solve(f: Formula): Option[Asn] = dpll(f, Solver.mtAsn)
 }
 
 case object DPLLCPS extends Solver {
@@ -183,7 +186,7 @@ case object DPLLCPS extends Solver {
       dpll_naive_cps(new_f, assgn ++ new_assgn, fc)
     }
     else if (f.hasPureClause) {
-      dpll_naive_cps(f.addSingletonClause(f.pureVars.head), assgn, fc)
+      dpll_naive_cps(f.addUnitClause(f.pureVars.head), assgn, fc)
     }
     else {
       val v = f.pickFirst
@@ -191,7 +194,7 @@ case object DPLLCPS extends Solver {
     }
   }
 
-  def solve(f: Formula): Option[Asn] = dpll_naive_cps(f, mtAsn, () => None)
+  def solve(f: Formula): Option[Asn] = dpll_naive_cps(f, Solver.mtAsn, () => None)
 }
 
 case object DefuncDPLL extends Solver {
@@ -208,7 +211,7 @@ case object DefuncDPLL extends Solver {
     State(new_f, new_assgn, fc)
   }
   def applyPure(s: State): State = s match { case State(f, assgn, fc) =>
-    State(f.addSingletonClause(f.pureVars.head), assgn, fc)
+    State(f.addUnitClause(f.pureVars.head), assgn, fc)
   }
 
   def ddpll_navie_step(s: State): State = s match { case State(f, assgn, fc) =>
@@ -225,7 +228,7 @@ case object DefuncDPLL extends Solver {
     case State(f, asn, Nil) if f.hasUnsatClause => None
     case s => drive(ddpll_navie_step(s))
   }
-  def inject(f: Formula): State = State(f, mtAsn, List())
+  def inject(f: Formula): State = State(f, Solver.mtAsn, List())
 
   def solve(f: Formula): Option[Asn] = drive(inject(f))
 }
@@ -239,7 +242,7 @@ case object NdDefuncDPLL extends Solver {
     State(new_f, new_assgn)
   }
   def applyPure(s: State): State = s match { case State(f, assgn) =>
-    State(f.addSingletonClause(f.pureVars.head), assgn)
+    State(f.addUnitClause(f.pureVars.head), assgn)
   }
 
   def ddpll_navie_step(s: State): Set[State] = s match { case State(f, assgn) =>
@@ -262,26 +265,6 @@ case object NdDefuncDPLL extends Solver {
   def inject(f: Formula): State = State(f, List[Lit]())
 
   def solve(f: Formula): Option[Asn] = drive(Set(inject(f)))
-}
-
-object CNFExamples {
-  /** (x1 ∨ x2 ∨ -x3 ∨ x6) ∧
-    * (-x2 ∨ x4) ∧
-    * (-x1 ∨ -x5) ∧
-    * (-x1 ∨ x2 ∨ x3 ∨ -x4 ∨ x5) ∧
-    * (-x3) ∧ (x2 ∨ x5) ∧
-    * (-x5) ∧ (x1)
-    */
-  val example_1 = Formula(List(Clause(List(1, 2, -3, 6)),
-                               Clause(List(-2, 4)),
-                               Clause(List(-1, -5)),
-                               Clause(List(-1, 2, 3, -4, 5)),
-                               Clause(List(-3)), Clause(List(2, 5)),
-                               Clause(List(-5)), Clause(List(1))))
-
-  val example_2 = Formula(List(Clause(List(1)),
-                               Clause(List(-1)),
-                               Clause(List(1, 2))))
 }
 
 object DPLLTest extends App {
@@ -327,10 +310,10 @@ object DPLLTest extends App {
   for (f <- uf50) {
     println(f)
     val cnf = parseFromPath(f)
-    assert(solver1(cnf).nonEmpty)
+    //assert(solver1(cnf).nonEmpty)
     //assert(solver2(cnf).nonEmpty)
     //assert(solver3(cnf).nonEmpty)
-    //assert(solver4(cnf).nonEmpty)
+    assert(solver4(cnf).nonEmpty)
     //assert(solver5(cnf).nonEmpty)
   }
 
@@ -338,10 +321,10 @@ object DPLLTest extends App {
   for (f <- uuf50) {
     println(f)
     val cnf = parseFromPath(f)
-    assert(solver1(cnf).isEmpty)
+    //assert(solver1(cnf).isEmpty)
     //assert(solver2(cnf).isEmpty)
     //assert(solver3(cnf).isEmpty)
-    //assert(solver4(cnf).isEmpty)
+    assert(solver4(cnf).isEmpty)
     //assert(solver5(cnf).isEmpty)
   }
 
