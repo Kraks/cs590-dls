@@ -74,8 +74,10 @@ object CNFImp extends CNF {
     }
 
     def elimUnit: (Formula, Asn) = {
-      if (unitVars.groupBy(abs).exists(_._2.size == 2))
-        return (Formula(List(Clause(List()))), List[Lit]())
+      //TODO: make it faster?
+      for (u <- unitVars) {
+        if (unitVars.contains(-u)) return (Formula(List(Clause(List()))), List[Lit]())
+      }
       val result = for { c <- cs if !c.containsAnyOf(unitVars) }
                    yield c.removeAllOccur(unitVars.map(-_))
       (Formula(result), unitVars)
@@ -167,9 +169,9 @@ case object DPLL extends Solver {
       return dpll(new_f, assgn ++ new_assgn)
     }
     val v = f.pickFirst
-    val tryTrue = dpll(f.assign(v→true), v::assgn)
+    val tryTrue = dpll(f.assign(v → true), v::assgn)
     if (tryTrue.nonEmpty) tryTrue
-    else dpll(f.assign(v→false), -v::assgn)
+    else dpll(f.assign(v → false), -v::assgn)
   }
 
   def solve(f: Formula): Option[Asn] = dpll(f, Solver.mtAsn)
@@ -311,9 +313,9 @@ object DPLLTest extends App {
     println(f)
     val cnf = parseFromPath(f)
     //assert(solver1(cnf).nonEmpty)
-    //assert(solver2(cnf).nonEmpty)
+    assert(solver2(cnf).nonEmpty)
     //assert(solver3(cnf).nonEmpty)
-    assert(solver4(cnf).nonEmpty)
+    //assert(solver2(cnf).nonEmpty)
     //assert(solver5(cnf).nonEmpty)
   }
 
@@ -324,7 +326,7 @@ object DPLLTest extends App {
     //assert(solver1(cnf).isEmpty)
     //assert(solver2(cnf).isEmpty)
     //assert(solver3(cnf).isEmpty)
-    assert(solver4(cnf).isEmpty)
+    assert(solver2(cnf).isEmpty)
     //assert(solver5(cnf).isEmpty)
   }
 
