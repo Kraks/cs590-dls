@@ -1,4 +1,4 @@
-from typing import Dict, NamedTuple, List, Tuple, NewType, Optional
+from typing import Dict, NamedTuple, List, Tuple, NewType, Optional, Set
 from itertools import groupby
 
 Lit = NewType('Lit', int)
@@ -63,7 +63,7 @@ def apply_backtrack(s: State) -> State:
     #print("backtrack {}".format(s))
     top = s.cont[0]
     v, f, asn = top
-    return State(f.assign((v, False)), (-v,)+asn, s.cont[1:])
+    return State(f.assign(v, False), (-v,)+asn, s.cont[1:])
 
 def apply_unit(s: State) -> State:
     #print("unit {}".format(s))
@@ -86,7 +86,7 @@ def dpll_step(s: State) -> State:
         return State(f.assign(v, True), (v,)+asn, (Cont(v, f, asn),)+cont)
 
 def drive(s: State) -> Optional[Asn]:
-    print(s)
+    #print(s)
     f, asn, cont = s
     if f.isEmpty(): return asn
     elif len(cont) == 0 and f.hasUnsat(): return None
