@@ -210,7 +210,7 @@ case object DefuncDPLL extends Solver {
   }
   def applyUnit(s: State): State = s match { case State(f, assgn, fc) =>
     val (new_f, new_assgn) = f.elimSingleUnit
-    State(new_f, new_assgn, fc)
+    State(new_f, new_assgn ++ assgn, fc)
   }
   def applyPure(s: State): State = s match { case State(f, assgn, fc) =>
     State(f.addUnitClause(f.pureVars.head), assgn, fc)
@@ -241,7 +241,7 @@ case object NdDefuncDPLL extends Solver {
 
   def applyUnit(s: State): State = s match { case State(f, assgn) =>
     val (new_f, new_assgn) = f.elimSingleUnit
-    State(new_f, new_assgn)
+    State(new_f, new_assgn ++ assgn)
   }
   def applyPure(s: State): State = s match { case State(f, assgn) =>
     State(f.addUnitClause(f.pureVars.head), assgn)
