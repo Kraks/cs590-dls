@@ -1,6 +1,7 @@
 from typing import Dict, NamedTuple, List, Tuple, NewType, Optional, Set
 from itertools import groupby
 import sys
+import random
 
 Lit = NewType('Lit', int)
 Asn = Tuple[Lit, ...]
@@ -12,6 +13,10 @@ class Clause():
     def __str__(self): return str(self.xs)
     __repr__ = __str__
     def __getitem__(self, i): return self.xs[i]
+    def shuffle(self):
+        xs = self.xs.copy()
+        random.shuffle(xs)
+        return Clause(xs)
     def contains(self, x): return x in self.xs
     def remove(self, x) -> 'Clause': return Clause([y for y in self.xs if x != y])
     def assign(self, v: Lit, b: bool) -> Optional['Clause']:
@@ -48,6 +53,10 @@ class Formula():
         return False
     def hasUnit(self) -> bool: return len(self.unitVars) != 0
     def hasPure(self) -> bool: return len(self.pureVars) != 0
+    def shuffle(self) -> 'Formula':
+        cs = [c.shuffle() for c in self.cs]
+        random.shuffle(cs)
+        return Formula(cs)
 
 class Cont(NamedTuple):
     var: Lit
@@ -58,6 +67,7 @@ class State(NamedTuple):
     formula: Formula
     assignment: Asn
     cont: Tuple[Cont, ...]
+    def shuffle(self) -> 'State': return State(self.formula.shuffle(), self.assignment, self.cont)
 
 def parse_line(line) -> Clause: return Clause([int(x) for x in line.split(" ")][:-1])
 
