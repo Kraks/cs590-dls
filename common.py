@@ -1,5 +1,6 @@
 from typing import Dict, NamedTuple, List, Tuple, NewType, Optional, Set
 from itertools import groupby
+import sys
 
 Lit = NewType('Lit', int)
 Asn = Tuple[Lit, ...]
@@ -58,3 +59,14 @@ class State(NamedTuple):
     assignment: Asn
     cont: Tuple[Cont, ...]
 
+def parse_line(line) -> Clause: return Clause([int(x) for x in line.split(" ")][:-1])
+
+def parse_dimacs(filename: str) -> Formula:
+    def valid(l): return not (len(l)==0 or l[0]=='c' or l[0]=='p' or l[0]=='0' or l[0]=='%')
+    with open(filename) as f:
+        lines = [line.strip() for line in f.readlines()]
+        lines = [parse_line(l) for l in lines if valid(l)]
+        return Formula(lines)
+
+if __name__ == '__main__':
+    print(parse_dimacs(sys.argv[1]))

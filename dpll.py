@@ -1,6 +1,7 @@
 from typing import Dict, NamedTuple, List, Tuple, NewType, Optional, Set
 from itertools import groupby
 from common import *
+import glob
 
 def apply_backtrack(s: State) -> State:
     #print("backtrack {}".format(s))
@@ -36,9 +37,10 @@ def drive(s: State) -> Optional[Asn]:
 
 def inject(f: Formula) -> State: return State(f, (), ())
 
-def solve(s: Formula) -> State: return drive(inject(f))
+def solve(f: Formula) -> State: return drive(inject(f))
 
 if __name__ == '__main__':
+    """
     f = Formula([Clause([1, 2]),
                  Clause([-1])])
     assert(solve(f) == (2, -1))
@@ -50,3 +52,19 @@ if __name__ == '__main__':
                  Clause([-2]),
                  Clause([-3])])
     assert(solve(f) == None)
+    """
+    sys.setrecursionlimit(100000)
+
+    sats = glob.glob('/home/kraks/research/sat/src/main/resources/uf50-218/*.cnf')
+    for filename in sats:
+        print(filename)
+        formula = parse_dimacs(filename)
+        #print(formula)
+        assert(solve(formula) != None)
+
+    unsats = glob.glob('/home/kraks/research/sat/src/main/resources/uuf50-218/*.cnf')
+    for filename in unsats:
+        print(filename)
+        formula = parse_dimacs(filename)
+        #print(formula)
+        assert(solve(formula) == None)
