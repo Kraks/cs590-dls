@@ -58,6 +58,13 @@ class Formula():
         random.shuffle(cs)
         return Formula(cs)
 
+Cont = NamedTuple('Cont', [('var', Lit),
+                           ('formula', Formula),
+                           ('assignment', Asn)])
+State = NamedTuple('State', [('formula', Formula),
+                             ('assignment', Asn),
+                             ('cont', Tuple[Cont, ...])])
+"""
 class Cont(NamedTuple):
     var: Lit
     formula: Formula
@@ -67,7 +74,9 @@ class State(NamedTuple):
     formula: Formula
     assignment: Asn
     cont: Tuple[Cont, ...]
-    def shuffle(self) -> 'State': return State(self.formula.shuffle(), self.assignment, self.cont)
+"""
+
+def shuffle_state(self) -> 'State': return State(self.formula.shuffle(), self.assignment, self.cont)
 
 def parse_line(line) -> Clause: return Clause([int(x) for x in line.split(" ")][:-1])
 

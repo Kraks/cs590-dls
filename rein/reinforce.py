@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.distributions import Categorical
-
+import glob
 from common import *
 
 parser = argparse.ArgumentParser(description='PyTorch REINFORCE example')
@@ -41,7 +41,7 @@ class SatEnv():
         if filename: self.formula = parse_dimacs(filename)
         else: self.formula = parse_dimacs(self.filename)
         self.state = State(self.formula, (), ())
-        return self.emb(self.state.shuffle())
+        return self.emb(shuffle_state(self.state))
     def emb(self, state):
         def clause_reshape(x):
             if len(x) < 3: return x + ([0.0] * (3-len(x)))
@@ -51,6 +51,21 @@ class SatEnv():
         else: return torch.tensor(cs).flatten()
     def action_space(self) -> List[Lit]:
         return [abs(x) for x in self.state.formula.allVars]
+    def step_tr(self):
+        f, asn, cont = self.state
+        if f.isEmpty(): return True
+        elif len(cont) == 0 and f.hasUnsat():
+            return True
+        elif f.hasUnsat():
+            self.state = apply_backtrack(self.state)
+            return False
+        elif f.hasUnit():
+            self.state = apply_unit(self.state)
+            return self.step_tr()
+        v = f.pick()
+        self.state = State(f.assign(v, True), (v,)+asn, (Cont(v, f, asn),)+cont)
+        return False
+
     def step(self, action):
         """
         Returns (state, reward, done, info),
@@ -66,7 +81,8 @@ class SatEnv():
         elif f.hasUnsat():
             self.state = apply_backtrack(self.state)
             reward = 0.0
-            return self.emb(self.state.formula), reward, False, self.state.assignment
+            done = True if len(self.state.formula.cs) == 0 else False
+            return self.emb(self.state.formula), reward, done, self.state.assignment
         elif f.hasUnit():
             self.state = apply_unit(self.state)
             return self.step(action)
@@ -75,7 +91,8 @@ class SatEnv():
         self.state = State(f.assign(v, True), (v,)+asn, (Cont(v, f, asn),)+cont)
         cur_nvars = len(self.state.formula.allVars)
         reward = ((pre_nvars - cur_nvars) / pre_nvars) * 100.0
-        return self.emb(self.state.formula), reward, False, self.state.assignment
+        done = True if len(self.state.formula.cs) == 0 else False
+        return self.emb(self.state.formula), reward, done, self.state.assignment
 
 # TODO: replace it as a GNN
 class Policy(nn.Module):
@@ -94,7 +111,7 @@ class Policy(nn.Module):
 
 #env = gym.make('CartPole-v0')
 #env.seed(args.seed)
-env = SatEnv('/home/kraks/research/sat/src/main/resources/uf20-91/uf20-02.cnf')
+#env = SatEnv('../src/main/resources/uf20-91/uf20-02.cnf')
 torch.manual_seed(args.seed)
 
 policy = Policy()
@@ -106,20 +123,34 @@ eps = np.finfo(np.float32).eps.item()
 # TODO: how to represent a state?
 #       formula, decision history
 # TODO: invarant
-def select_action(state): 
+def select_action(state, env): 
     # state now is a list of 4 double
     #state = torch.from_numpy(state).float().unsqueeze(0) # a tensor of 4 double
     state = state.float().unsqueeze(0)
     probs = policy(state) #output the probs of each variable
     m = Categorical(probs) #transform to categories
 
-    print(probs)
-    action = m.sample() + 1 #choose one
-    while action.item() not in env.action_space():
-        action = m.sample() + 1
+    #action = m.sample() + 1 #choose one
+    sp = list(set(env.action_space().copy()))
+    random.shuffle(sp)
+    action = torch.tensor(sp[0])
 
     policy.saved_log_probs.append(m.log_prob(action-1))
     return action.item()
+
+def select_action_test(state, env):
+    state = state.float().unsqueeze(0)
+    probs = policy(state) #output the probs of each variable
+    m = Categorical(probs) #transform to categories
+    m = [p for p in m.enumerate_support()]
+    sp = list(set(env.action_space().copy()))
+    maxp = 0.0
+    idx = 1
+    for i in sp:
+        if m[i-1] > maxp:
+            maxp = m[i-1]
+            idx = i
+    return idx
 
 def finish_episode():
     R = 0
@@ -141,26 +172,51 @@ def finish_episode():
 
 def main():
     running_reward = 10
-    for i_episode in count(1):
-        state = env.reset()
-        for t in range(20 ** 2):
-            action = select_action(state)
-            print("Picking {}".format(action))
-            state, reward, done, _ = env.step(action)
-            #if args.render: env.render()
-            policy.rewards.append(reward)
-            if done: break
-        running_reward = running_reward * 0.99 + t * 0.01
-        finish_episode()
-        if i_episode % args.log_interval == 0:
+    sats = glob.glob("../src/main/resources/uf20-91/*.cnf")
+    for filename in sats[0:30]:
+        print('Training with {}'.format(filename))
+        env = SatEnv(filename)
+        for i_episode in range(1, 10):
+            print("Start episode {}".format(i_episode))
+            state = env.reset()
+            for t in range(20 ** 2):
+                action = select_action(state, env)
+                print("Picking {}".format(action))
+                state, reward, done, _ = env.step(action)
+                print("done: {}".format(done))
+                #if args.render: env.render()
+                policy.rewards.append(reward)
+                if done: break
+            running_reward = running_reward * 0.99 + t * 0.01
+            finish_episode()
             print('Episode {}\tLast length: {:5d}\tAverage length: {:.2f}'.format(
                 i_episode, t, running_reward))
-        """
-        if running_reward > env.spec.reward_threshold:
-            print("Solved! Running reward is now {} and "
-                  "the last episode runs to {} time steps!".format(running_reward, t))
-            break
-        """
+            """
+            if running_reward > env.spec.reward_threshold:
+                print("Solved! Running reward is now {} and "
+                      "the last episode runs to {} time steps!".format(running_reward, t))
+                break
+            """
+    torch.save(policy, 'policy.pkl')
+    print("training done...")
+    for filename in sats[30:40]:
+        env = SatEnv(filename)
+        state = env.reset()
+        steps = 0
+        while True:
+            steps += 1
+            action = select_action_test(state, env)
+            _, _, done, _ = env.step(action)
+            if done: break
+        print("{}, NN steps {}".format(filename, steps))
+
+        env.reset()
+        steps = 0
+        while True:
+            steps += 1
+            done = env.step_tr()
+            if done: break
+        print("{}, TR steps {}".format(filename, steps))
 
 if __name__ == "__main__":
     main()
