@@ -77,7 +77,7 @@ class SatEnv():
         """
         f, asn, cont = self.state
         if f.isEmpty(): 
-            reward = 0.0
+            reward = 1.0
             print("pick {}, done: {}, backtrack/unsat: {}".format(action, True, False))
             return None, reward, True, asn
         elif len(cont) == 0 and f.hasUnsat():
