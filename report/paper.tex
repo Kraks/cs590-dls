@@ -113,9 +113,8 @@
 %% Abstract
 %% Note: \begin{abstract}...\end{abstract} environment must come
 %% before \maketitle command
-\begin{abstract}
-  In this document, we summarize the discussion and provide some formal description of the proposed model.
-\end{abstract}
+%\begin{abstract}
+%\end{abstract}
 
 
 %% 2012 ACM Computing Classification System (CSS) concepts
@@ -155,16 +154,40 @@
 \footnotetextcopyrightpermission{Copyright held by the authors.}
 \fancyhead[RO,LE]{Preprint, Dec 2019}
 
-\section{Problem Statement}
+\section{Introduction}
 
-In this paper, we report the progress and result on the project that aims to learn branching heuristics 
-for SAT problem based on DPLL algorithm. The DPLL algorithm \cite{Davis:1962:MPT:368273.368557} and its 
-variants are widely used in many modern SAT solvers. 
-The core ideas behind DPLL are searching and unit propagation. 
-The searching involves choosing a variable and assigning it to either $\top$ or $\bot$, 
-which is the part of our concern in this paper.
+In this paper, we report the progress and preliminary result on the CS590-DLS course project that aims 
+to learn branching heuristics for the Boolean Satisfiability (SAT) problem based on DPLL algorithm. 
 
-The DPLL algorithm works on Conjunction Normal Form. A CNF formula is a conjunction of clauses. A clause is a disjunction of literals. A literal is either a variable (symbol) or a negation of a variable. Formulas in other forms can be translated to CNF \cite{tseitin1983complexity}. For example, $(x_1 \vee x_2) \wedge (\neg x_2 \vee x_3)$ is a valid CNF formula.
+\paragraph{Background}
+
+Given a formula consists of variables over booleans and propositional logic connectives, the satisfiability
+problem asks an assignment, i.e., a mapping from variables to boolean values, that makes the formula be true. 
+For example; $(P \wedge Q) \to (\neg Q \vee R)$ is a well-formed formula and can be satisfied by assigning
+$P$ to be $\top$; $P \wedge \neg P$ is another well-formed formula but can not be satisfied, written as UNSAT.
+
+A traditional approach to solve SAT is DPLL algorithm \cite{Davis:1962:MPT:368273.368557}. 
+Although in the worst case, DPLL is still an exponential algorithm due the nature of the problem,
+but on many instances DPLL is able to find a solution or prove UNSAT quickly.
+Thus DPLL and its variants are widely used in many modern SAT solvers such as miniSAT.
+
+The DPLL algorithm works on Conjunction Normal Form (CNF). 
+A CNF formula is a conjunction of clauses. A clause is a disjunction of literals. 
+A literal is either a variable (symbol) or a negation of a variable. 
+Formulas in other forms can be translated to CNF \cite{tseitin1983complexity}. 
+For example, $(x_1 \vee x_2) \wedge (\neg x_2 \vee x_3)$ is a well-formed formula in CNF.
+
+With the CNF format introduced, now we can briefly describe the essential ideas behind DPLL: 
+unit propagation, searching and backtracking.
+If a clause contains only one literal, then it is a unit clause. Since the problem is given 
+in CNF, this cluase is forced to be satisfied, thus we must assign this literal to be true. 
+The unit propagation then calculate the consequential formula by making this assignment --
+some clauses can be complete eliminated.
+If the current formula does not contain an unit clause, the algorithm then chooses a branching
+variable by predefined heuristics and assign either $\top$ or $\bot$ to this variable,
+and then propagate this decision and recursively call the decision procedure.
+At some point, we may reach a dead end that the current assignment shows an UNSAT result, 
+then we need to recover to some previous decision we made and try another assignment.
 
 The pseudocode of DPLL procedure is listed as follows:
 
@@ -180,12 +203,29 @@ def dpll(f: Formula): Boolean = {
 }
 \end{lstlisting}
 
+Several variants based on this algorithm make it more efficient: 1) one can introduce
+pure literal elimination, that is a variable appears with only one polarity can be 
+assigned to a value that makes its containing clauses satisfies but without triggering
+any conflict. 2) When we reach one dead end, we can perform a conflict analysis which 
+produces a lemma that must be satisfied (known as conflict-driven clauses learning, CDCL
+\cite{DBLP:series/faia/SilvaLM09}). 
+The lemma will be added back to the formula, and the backtrack can be done in a non-chronological fashion.
+In this paper, we constrain ourself to the simplest version of DPLL and focus on
+learning how to choose the branching variable.
+
+\paragraph{Problem Statement}
+
+The fundamental problem we are interested in is
+
 Particularly, we would like to learn the branching heuristics for \texttt{f.pickVariable}.
-In this paper, we use graph neural network to encode a CNF formula and use reinforcement learning 
-to learn the best branching heuristics.
+In this paper, we propose to use recent advances in graph neural network to 
+encode a CNF formula and use reinforcement learning to learn the best branching heuristics.
 We use the policy gradient method for the reinforcement learning part.
 
-\section{Proposed Model}
+\section{Model}
+
+In this section, we briefly review the related work on graph representations of SAT
+and then describe the model used in this paper.
 
 \subsection{General Description}
 
@@ -264,6 +304,27 @@ and backprop the $\mathcal{G}$ and $\mathcal{P}$ at the level $i$.
 For example, we assign the most recent decision a 
 reward $-\frac{1}{2}$ and backprop the $\mathcal{G}$ and $\mathcal{P}$ at this level; then assign
 a reward $-\frac{1}{4}$ and backprop the $\mathcal{G}$ and $\mathcal{P}$ at level $t-1$, and etc.
+
+\section{Implementation}
+
+To make the DPLL algorithm integrates well with the ML/RL part, we implement a small-step version of 
+DPLL, but without changing the decision procedure. This can be obtained by applying 
+defunctionalization \cite{DBLP:conf/ppdp/DanvyN01} to the recursive DPLL implementation, which exposed a continuation
+component that saves the decision history and the current state. Another similar presentation
+is \citeauthor{DBLP:conf/lpar/NieuwenhuisOT04}'s abstract DPLL.
+This allows us easily inspect the current state and explicitly handle backtrack.
+
+\section{Experiment}
+
+\section{Related Work}
+
+As artifical neural networks greatly succeeded in vision and natural language tasks in last ten years,
+many works that combine deep learning and logical reasoning also has been emerged recently.
+
+\section{Conclusion}
+
+\textbf{Acknowledgement} The author would like to thank Fei Wang for the inspiring discussion and 
+help of the machine learning part.
 
 \clearpage{}
 
