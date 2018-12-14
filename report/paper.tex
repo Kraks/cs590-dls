@@ -1,0 +1,298 @@
+% \documentclass[sigplan,10pt,nonacm]{acmart}\settopmatter{printfolios=true,printccs=false,printacmref=false}
+
+%% For double-blind review submission, w/o CCS and ACM Reference (max submission space)
+% \documentclass[sigplan,review,anonymous]{acmart}\settopmatter{printfolios=true,printccs=false,printacmref=false}
+%% For double-blind review submission, w/ CCS and ACM Reference
+%\documentclass[sigplan,review,anonymous]{acmart}\settopmatter{printfolios=true}
+%% For single-blind review submission, w/o CCS and ACM Reference (max submission space)
+%\documentclass[sigplan,review]{acmart}\settopmatter{printfolios=true,printccs=false,printacmref=false}
+%% For single-blind review submission, w/ CCS and ACM Reference
+%\documentclass[sigplan,review]{acmart}\settopmatter{printfolios=true}
+%% For final camera-ready submission, w/ required CCS and ACM Reference
+\documentclass[sigplan,10pt]{acmart}\settopmatter{printfolios=true,printccs=false,printacmref=false}
+
+
+%% Conference information
+%% Supplied to authors by publisher for camera-ready submission;
+%% use defaults for review submission.
+\acmConference[Purdue CS590-DLS]{}{Dec 2019}{West Lafayette, Indiana}
+\acmYear{2019}
+\acmISBN{} % \acmISBN{978-x-xxxx-xxxx-x/YY/MM}
+\acmDOI{} % \acmDOI{10.1145/nnnnnnn.nnnnnnn}
+\startPage{1}
+
+
+%% Copyright information
+%% Supplied to authors (based on authors' rights management selection;
+%% see authors.acm.org) by publisher for camera-ready submission;
+%% use 'none' for review submission.
+\setcopyright{none}
+%\setcopyright{acmcopyright}
+%\setcopyright{acmlicensed}
+%\setcopyright{rightsretained}
+%\copyrightyear{2018}           %% If different from \acmYear
+
+%% Bibliography style
+\bibliographystyle{ACM-Reference-Format}
+%% Citation style
+%\citestyle{acmauthoryear}  %% For author/year citations
+%\citestyle{acmnumeric}     %% For numeric citations
+%\setcitestyle{nosort}      %% With 'acmnumeric', to disable automatic
+                            %% sorting of references within a single citation;
+                            %% e.g., \cite{Smith99,Carpenter05,Baker12}
+                            %% rendered as [14,5,2] rather than [2,5,14].
+%\setcitesyle{nocompress}   %% With 'acmnumeric', to disable automatic
+                            %% compression of sequential references within a
+                            %% single citation;
+                            %% e.g., \cite{Baker12,Baker14,Baker16}
+                            %% rendered as [2,3,4] rather than [2-4].
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Note: Authors migrating a paper from traditional SIGPLAN
+%% proceedings format to PACMPL format must update the
+%% '\documentclass' and topmatter commands above; see
+%% 'acmart-pacmpl-template.tex'.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%% Some recommended packages.
+\usepackage{booktabs}   %% For formal tables:
+                        %% http://ctan.org/pkg/booktabs
+\usepackage{subcaption} %% For complex figures with subfigures/subcaptions
+                        %% http://ctan.org/pkg/subcaption
+%% Some recommended packages.
+\usepackage{booktabs}   %% For formal tables:
+                        %% http://ctan.org/pkg/booktabs
+\usepackage{subcaption} %% For complex figures with subfigures/subcaptions
+                        %% http://ctan.org/pkg/subcaption
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[scaled=0.8]{beramono}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{xcolor,colortbl}
+\usepackage{url}
+\usepackage{listings}
+\usepackage{paralist}
+\usepackage{subcaption}
+\usepackage{wrapfig}
+\usepackage{enumitem}
+\usepackage{multicol}
+\usepackage{flushend}
+\usepackage{bcprules}
+\usepackage{nicefrac}
+\usepackage{xfrac}
+\input{macros}
+
+\begin{document}
+
+%% Title information
+\title{Learning Heuristics of SAT by Graph Neural Networks}         %% [Short Title] is optional;
+                                        %% when present, will be used in
+                                        %% header instead of Full Title.
+%\titlenote{with title note}             %% \titlenote is optional;
+                                        %% can be repeated if necessary;
+                                        %% contents suppressed with 'anonymous'
+% \subtitle{Subtitle}                     %% \subtitle is optional
+% \subtitlenote{with subtitle note}       %% \subtitlenote is optional;
+                                        %% can be repeated if necessary;
+                                        %% contents suppressed with 'anonymous'
+
+\author
+[Guannan Wei]
+{Guannan Wei \\ Purdue University}
+
+\lstMakeShortInline[keywordstyle=,%
+              flexiblecolumns=false,%
+              %basewidth={0.56em, 0.52em},%
+              mathescape=false,%
+              basicstyle=\tt]@
+
+%% Abstract
+%% Note: \begin{abstract}...\end{abstract} environment must come
+%% before \maketitle command
+\begin{abstract}
+  In this document, we summarize the discussion and provide some formal description of the proposed model.
+\end{abstract}
+
+
+%% 2012 ACM Computing Classification System (CSS) concepts
+%% Generate at 'http://dl.acm.org/ccs/ccs.cfm'.
+\begin{CCSXML}
+<ccs2012>
+<concept>
+<concept_id>10011007.10011006.10011008</concept_id>
+<concept_desc>Software and its engineering~General programming languages</concept_desc>
+<concept_significance>500</concept_significance>
+</concept>
+<concept>
+<concept_id>10003456.10003457.10003521.10003525</concept_id>
+<concept_desc>Social and professional topics~History of programming languages</concept_desc>
+<concept_significance>300</concept_significance>
+</concept>
+</ccs2012>
+\end{CCSXML}
+
+\ccsdesc[500]{Software and its engineering~General programming languages}
+\ccsdesc[300]{Social and professional topics~History of programming languages}
+%% End of generated code
+
+
+%% Keywords
+%% comma separated list
+% \keywords{keyword1, keyword2, keyword3}  %% \keywords are mandatory in final camera-ready submission
+
+
+%% \maketitle
+%% Note: \maketitle command must come after title commands, author
+%% commands, abstract environment, Computing Classification System
+%% environment and commands, and keywords command.
+\maketitle
+
+\renewcommand\thefootnotecopyrightpermission{}
+\footnotetextcopyrightpermission{Copyright held by the authors.}
+\fancyhead[RO,LE]{Preprint, Dec 2019}
+
+\section{Problem Statement}
+
+In this paper, we report the progress and result on the project that aims to learn branching heuristics 
+for SAT problem based on DPLL algorithm. The DPLL algorithm \cite{Davis:1962:MPT:368273.368557} and its 
+variants are widely used in many modern SAT solvers. 
+The core ideas behind DPLL are searching and unit propagation. 
+The searching involves choosing a variable and assigning it to either $\top$ or $\bot$, 
+which is the part of our concern in this paper.
+
+The DPLL algorithm works on Conjunction Normal Form. A CNF formula is a conjunction of clauses. A clause is a disjunction of literals. A literal is either a variable (symbol) or a negation of a variable. Formulas in other forms can be translated to CNF \cite{tseitin1983complexity}. For example, $(x_1 \vee x_2) \wedge (\neg x_2 \vee x_3)$ is a valid CNF formula.
+
+The pseudocode of DPLL procedure is listed as follows:
+
+\begin{lstlisting}
+def dpll(f: Formula): Boolean = {
+  if (f.hasUnsatClause) return false
+  if (f.isSat) return true
+  if (f.hasUnitClause) return dpll(f.elimUnitClause)
+  val v = f.pickVariable
+  val tryTrue = dpll(f.addUnitClause(v))
+  if (tryTrue) true
+  else dpll(f.addUnitClause(neg(v)))
+}
+\end{lstlisting}
+
+Particularly, we would like to learn the branching heuristics for \texttt{f.pickVariable}.
+In this paper, we use graph neural network to encode a CNF formula and use reinforcement learning 
+to learn the best branching heuristics.
+We use the policy gradient method for the reinforcement learning part.
+
+\section{Proposed Model}
+
+\subsection{General Description}
+
+\paragraph{Graph Representation}
+
+The graph embedding captures the permutation invariance and the structure of a CNF formula.
+We first review NeuroSAT's graph embedding of a CNF formula \cite{selsam2018learning}.
+
+Given a formula $F$ of $m$ clauses and $n$ variables in CNF, 
+one can construct a graph $G = \langle V, E \rangle$ such that 
+$V = V_{lit} \cup V_{cls}$ where $V_{lit}$ is the set of vertices embedding literals,
+$V_{cls}$ is the set of vertices embedding clauses. 
+And $E$ contains two different types of edge, the first one is the edegs connecting literals and its
+containing clauses, the second one is the edges connecting a variable and its negation, formally,
+$ E = \{ (l, c) | l \in c \} \cup \{ (l, \neg l) | l \}$ for all literals $l$ and clauses $c$.
+Note that in the NeuroSAT's encoding, there is a vertex for every variable and its negation no matter
+it appears or not, so the size of vertices set $|V| = 2n + m$.
+
+\paragraph{Message-Passing Neural Network}
+
+After the graph is constructed, NeuroSAT uses message-passing mechanism to refine the vector space embeddings.
+One iteration of a message-passing consists of two stages:
+1) first every clause receives messages from its neighboring literals and update the clause embedding;
+2) then every literal receives its message from its neighboring clauses and its negated literal vertices,
+and update its embedding.
+
+Suppose the size of embedding vectors is $d$. The initial embedding vectors of literals and clauses 
+are $L^{0} \in \mathbb{R}^{2n \times d}$ and $C^{0} \in \mathbb{R}^{m \times d}$ which are randomly initialized.
+NeuroSAT uses two MLPs $\mathcal{L}_{msg}$ and $\mathcal{C}_{msg}$ to produce the messages from embeddings, 
+and two LSTMs $\mathcal{L}_u$ and $\mathcal{C}_u$ to update the embeddings every iteration 
+(the hidden states are elided). 
+As mentioned above, for the time $t$ there are two stages in a iteration:
+$$ C^{t+1} \leftarrow \mathcal{C}_u( \mathcal{L}_{msg}(L^t) ) $$
+$$ L^{t+1} \leftarrow \mathcal{L}_u( \mathcal{C}_{msg}(C^{t+1}) ) $$
+
+After $T$ iterations, with the embedding produced, another MLP $\mathcal{P}$ which served as the policy network takes 
+the embeddings as input and produces the vector $\mathcal{P}(L^T) \in \mathbb{R}^{2n}$ that represents the probabilities of choosing which literal.
+
+\subsection{Embedding Problem}
+
+However, naively adapting NeuroSAT's graph embedding is not going to work.
+Because NeuroSAT models SAT as a supervised learning problem without using traditional algorithms 
+such as DPLL, which then means the graph structure is static. 
+But in the DPLL and reinforcement learning setting, the formula is changed every time when we make a decision --
+some variables and clauses may completely be eliminated by unit propagation over the time.
+
+This further raises two entangled problems:
+1) How to embed the assignments as well as the decision history into the graph.
+2) How to reflect the structural changes in the graph representation. Ideally, if the assignments are properly 
+embedded, the graph should be able to automatically reflect the resulting formula after an assignment. 
+Otherwise, adding annotations on nodes to identify live literals and clauses or manually pruning the graph 
+(i.e., removing the edges and nodes) are two options.
+
+\paragraph{Solutions}
+
+It seems a perfect self-adapting graph neural network architecture that reflects the assignments
+does not exist yet. 
+
+So we discuss the second pruning schema that changes the graph structure every time.
+Note that there are conceptually two neural networks, $\mathcal{G}$ transforms a formula (graph represented) 
+to embeddings, and $\mathcal{P}$ predicts how to choose from the live variables according to the embeddings.
+Also note that if conflict-driven clauses learning is not introduced, 
+the graph is monotonically shrinking every time.
+
+Consider a complete decision trace that consists of $t$ decisions:
+$$ (F_0, G_0, d_0) \to (F_1, G_1, d_1) \cdots \to (F_t, G_t, d_t) $$
+
+where $F_i$ is the formula, $G_i$ is the corresponding graph embedding, and $d_i$ is the decision at time $i$.
+A decision $d$ is a pair that consists of a variable and a assigned value (either $\top$ or $\bot$).
+
+If eventually we have SAT, then we assign a reward $1$ for every decision on the this path,
+and backprop the two neural networks $\mathcal{G}$ and $\mathcal{P}$ at each level of decisions.
+
+If eventually we have UNSAT or have to backtrack, then we assign reward $-\frac{1}{2^{t-i+1}}$
+and backprop the $\mathcal{G}$ and $\mathcal{P}$ at the level $i$.
+For example, we assign the most recent decision a 
+reward $-\frac{1}{2}$ and backprop the $\mathcal{G}$ and $\mathcal{P}$ at this level; then assign
+a reward $-\frac{1}{4}$ and backprop the $\mathcal{G}$ and $\mathcal{P}$ at level $t-1$, and etc.
+
+\clearpage{}
+
+% %% Acknowledgments
+% \begin{acks}                            %% acks environment is optional
+%                                         %% contents suppressed with 'anonymous'
+%   %% Commands \grantsponsor{<sponsorID>}{<name>}{<url>} and
+%   %% \grantnum[<url>]{<sponsorID>}{<number>} should be used to
+%   %% acknowledge financial support and will be used by metadata
+%   %% extraction tools.
+%   This material is based upon work supported by the
+%   \grantsponsor{GS100000001}{National Science
+%     Foundation}{http://dx.doi.org/10.13039/100000001} under Grant
+%   No.~\grantnum{GS100000001}{nnnnnnn} and Grant
+%   No.~\grantnum{GS100000001}{mmmmmmm}.  Any opinions, findings, and
+%   conclusions or recommendations expressed in this material are those
+%   of the author and do not necessarily reflect the views of the
+%   National Science Foundation.
+% \end{acks}
+
+
+%% Bibliography
+\bibliography{reference}
+
+
+%% Appendix
+% \appendix
+% \section{Appendix}
+
+% Text of appendix \ldots
+
+\end{document}
