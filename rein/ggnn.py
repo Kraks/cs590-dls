@@ -83,7 +83,7 @@ class GGNN(nn.Module):
         for m in self.modules():
             if isinstance(m, nn.Linear):
                 m.weight.data.normal_(0.0, 0.02)
-                m.bias.daa.fill_(0)
+                m.bias.data.fill_(0)
 
     def forward(self, prop_state, annotation, A):
         for i_step in range(self.n_steps):

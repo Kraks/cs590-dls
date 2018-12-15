@@ -8,8 +8,6 @@ import torch.nn as nn
 from torch.autograd import Variable
 import torch.nn.functional as F
 
-#TODO: batch for a NNet
-
 dtype = torch.FloatTensor
 
 # Reference: https://github.com/priba/nmp_qc/
@@ -202,3 +200,4 @@ if __name__ == '__main__':
     print(net)
     print(rin)
     print(net(rin))
+

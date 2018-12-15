@@ -215,12 +215,17 @@ learning how to choose the branching variable.
 
 \paragraph{Problem Statement}
 
-The fundamental problem we are interested in is
+In the literatures, people have invented several efficient branching heuristics, 
+from very simple ones such as picking the most frequent literal, 
+to complicated ones such as such as VSIDS \cite{zhang2002quest}.
+Literatures on branching heuristics can be found from \cite{hooker1995branching, li1997heuristics}.
+But among these heuristics, no one works perfect for all kinds of instances.
 
-Particularly, we would like to learn the branching heuristics for \texttt{f.pickVariable}.
-In this paper, we propose to use recent advances in graph neural network to 
-encode a CNF formula and use reinforcement learning to learn the best branching heuristics.
-We use the policy gradient method for the reinforcement learning part.
+The fundamental problem we are interested in is, given a such simple DPLL algorithm
+framework, can we learn an efficient heuristics from scratch?
+In this paper, we propose to use recent advances in graph neural networks to 
+encode a CNF formula and use reinforcement learning to learn the branching heuristics.
+We will use the policy gradient method for the reinforcement learning part.
 
 \section{Model}
 
@@ -231,22 +236,30 @@ and then describe the model used in this paper.
 
 \paragraph{Graph Representation}
 
-The graph embedding captures the permutation invariance and the structure of a CNF formula.
+The central problem on apply neural-network-based approach to SAT is how to 
+represent a boolean formula and a decision in a differentiable way.
+The formula can be easily represented by a sequence or a matrix, but this
+representation losts the structural information and the invarant properties such as
+exchange.
+The graph neural networks have been applied to computational chemistry and 
+social network analysis which also capture the permutation invariance and the 
+structure of a CNF formula.
 We first review NeuroSAT's graph embedding of a CNF formula \cite{selsam2018learning}.
 
 Given a formula $F$ of $m$ clauses and $n$ variables in CNF, 
 one can construct a graph $G = \langle V, E \rangle$ such that 
-$V = V_{lit} \cup V_{cls}$ where $V_{lit}$ is the set of vertices embedding literals,
-$V_{cls}$ is the set of vertices embedding clauses. 
-And $E$ contains two different types of edge, the first one is the edegs connecting literals and its
-containing clauses, the second one is the edges connecting a variable and its negation, formally,
+$V = V_{lit} \cup V_{cls}$ where $V_{lit}$ is the set of vertices that embed literals,
+$V_{cls}$ is the set of vertices that embed clauses. 
+And $E$ contains two different types of edge, the first one is the edegs that connect literals and its
+containing clauses, the second type is the edges that connect a variable and its negation, formally,
 $ E = \{ (l, c) | l \in c \} \cup \{ (l, \neg l) | l \}$ for all literals $l$ and clauses $c$.
 Note that in the NeuroSAT's encoding, there is a vertex for every variable and its negation no matter
 it appears or not, so the size of vertices set $|V| = 2n + m$.
 
 \paragraph{Message-Passing Neural Network}
 
-After the graph is constructed, NeuroSAT uses message-passing mechanism to refine the vector space embeddings.
+After the graph is constructed, NeuroSAT uses iterative message-passing mechanism to refine the 
+vector space embeddings.
 One iteration of a message-passing consists of two stages:
 1) first every clause receives messages from its neighboring literals and update the clause embedding;
 2) then every literal receives its message from its neighboring clauses and its negated literal vertices,
@@ -261,8 +274,9 @@ As mentioned above, for the time $t$ there are two stages in a iteration:
 $$ C^{t+1} \leftarrow \mathcal{C}_u( \mathcal{L}_{msg}(L^t) ) $$
 $$ L^{t+1} \leftarrow \mathcal{L}_u( \mathcal{C}_{msg}(C^{t+1}) ) $$
 
-After $T$ iterations, with the embedding produced, another MLP $\mathcal{P}$ which served as the policy network takes 
-the embeddings as input and produces the vector $\mathcal{P}(L^T) \in \mathbb{R}^{2n}$ that represents the probabilities of choosing which literal.
+After $T$ iterations, with the embedding produced, another MLP $\mathcal{P}$ which served as the policy 
+network takes the embeddings as input and produces the vector $\mathcal{P}(L^T) \in \mathbb{R}^{2n}$ that 
+represents the probabilities of choosing which literal.
 
 \subsection{Embedding Problem}
 
@@ -279,7 +293,7 @@ embedded, the graph should be able to automatically reflect the resulting formul
 Otherwise, adding annotations on nodes to identify live literals and clauses or manually pruning the graph 
 (i.e., removing the edges and nodes) are two options.
 
-\paragraph{Solutions}
+\paragraph{Potential Solutions}
 
 It seems a perfect self-adapting graph neural network architecture that reflects the assignments
 does not exist yet. 
@@ -307,14 +321,30 @@ a reward $-\frac{1}{4}$ and backprop the $\mathcal{G}$ and $\mathcal{P}$ at leve
 
 \section{Implementation}
 
-To make the DPLL algorithm integrates well with the ML/RL part, we implement a small-step version of 
-DPLL, but without changing the decision procedure. This can be obtained by applying 
+To make the DPLL algorithm interactively integrates with the reinforcement learning algorithm, we implement a small-step version of 
+DPLL (as opposed to the recursive one in we showed in Section 1), but without changing the decision procedure. This can be obtained by applying 
 defunctionalization \cite{DBLP:conf/ppdp/DanvyN01} to the recursive DPLL implementation, which exposed a continuation
 component that saves the decision history and the current state. Another similar presentation
-is \citeauthor{DBLP:conf/lpar/NieuwenhuisOT04}'s abstract DPLL.
+is \citeauthor{DBLP:conf/lpar/NieuwenhuisOT04}'s abstract DPLL formulation \cite{DBLP:conf/lpar/NieuwenhuisOT04}.
 This allows us easily inspect the current state and explicitly handle backtrack.
 
+We use PyTorch framework to implement the neural networks and reinforcement learning.
+The code we use to implement message-passing neural network and gated-graph neural network 
+are based on open-sourced repositories on Github 
+\footnote{https://github.com/JamesChuanggg/ggnn.pytorch} 
+\footnote{https://github.com/priba/nmp\_qc}.
+The policy network is a shallow neural network with three hidden layers.
+
 \section{Experiment}
+
+In the experiments, we use two baselines: the first one is randomly picking a literal; 
+the second one we use a multi-layer perceptrons as policy network, but just with 
+a linear, direct embedding of CNF formula.
+
+The training data and testing data are public and available online 
+\footnote{https://www.cs.ubc.ca/~hoos/SATLIB/benchm.html}.
+To measure the efficiency, we count the number of decisions made by baselines and the 
+graph-based model.
 
 \section{Related Work}
 
@@ -322,6 +352,16 @@ As artifical neural networks greatly succeeded in vision and natural language ta
 many works that combine deep learning and logical reasoning also has been emerged recently.
 
 \section{Conclusion}
+
+We investigate the problem of learning branching heuristics of SAT by 
+graph neural networks and show the preliminary result. 
+We note that since the random 3-SAT problems are not tightly constrained,
+which means there may exist many satisfiable assignments, the numbers we showed
+in Section 4 does not strictly imply the policy network has learned effective
+branching heuristics. We leave the examination of ability of generalizing
+on larger instances as future works. The graph currently experimented is still 
+static, implementing and tweaking the dynamicaly updated GNN (as discussed in 
+Section 2.2) is another on-going work.
 
 \textbf{Acknowledgement} The author would like to thank Fei Wang for the inspiring discussion and 
 help of the machine learning part.
