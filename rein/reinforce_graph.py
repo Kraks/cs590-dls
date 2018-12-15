@@ -113,7 +113,7 @@ class SatEnv():
 
         output = gnn.compute_node_representations(initial_node_representation=torch.randn(n_nodes, 32),
                                                   adjacency_lists=[lit_edges, clause_edges])
-        print("output shape: {}".format(output.shape))
+        #print("output shape: {}".format(output.shape))
         return output[:len(all_var_uniq)*2]
 
     def action_space(self) -> List[Lit]:

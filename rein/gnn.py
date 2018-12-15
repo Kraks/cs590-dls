@@ -112,15 +112,16 @@ class GatedGraphNeuralNetwork(nn.Module):
             # Extract residual messages, if any:
             layer_residual_connections = self.residual_connections.get(layer_idx, [])
             # List[(V, D)]
-            layer_residual_states: List[torch.FloatTensor] = [node_states_per_layer[residual_layer_idx]
-                                                              for residual_layer_idx in layer_residual_connections]
+            layer_residual_states = [node_states_per_layer[residual_layer_idx] for residual_layer_idx in layer_residual_connections]
 
             # Record new states for this layer. Initialised to last state, but will be updated below:
             node_states_for_this_layer = node_states_per_layer[-1]
             # For each message propagation step
             for t in range(num_timesteps):
-                messages: List[torch.FloatTensor] = []  # list of tensors of messages of shape [E, D]
-                message_source_states: List[torch.FloatTensor] = []  # list of tensors of edge source states of shape [E, D]
+                #messages: List[torch.FloatTensor] = []  # list of tensors of messages of shape [E, D]
+                messages = []  # list of tensors of messages of shape [E, D]
+                #message_source_states: List[torch.FloatTensor] = []  # list of tensors of edge source states of shape [E, D]
+                message_source_states = []  # list of tensors of edge source states of shape [E, D]
 
                 # Collect incoming messages per edge type
                 for edge_type_idx, adjacency_list_for_edge_type in enumerate(adjacency_lists):
@@ -138,7 +139,7 @@ class GatedGraphNeuralNetwork(nn.Module):
                         message_source_states.append(edge_source_states)
 
                 # shape [M, D]
-                messages: torch.FloatTensor = torch.cat(messages, dim=0)
+                messages = torch.cat(messages, dim=0)
 
                 # Sum up messages that go to the same target node
                 # shape [V, D]
