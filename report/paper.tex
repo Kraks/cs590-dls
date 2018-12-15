@@ -84,6 +84,7 @@
 \usepackage{bcprules}
 \usepackage{nicefrac}
 \usepackage{xfrac}
+\usepackage{graphicx}
 \input{macros}
 
 \begin{document}
@@ -329,6 +330,7 @@ is \citeauthor{DBLP:conf/lpar/NieuwenhuisOT04}'s abstract DPLL formulation \cite
 This allows us easily inspect the current state and explicitly handle backtrack.
 
 We use PyTorch framework to implement the neural networks and reinforcement learning.
+The model we implemented is a gated-graph neural network, which is a variant of message-passing neural network.
 The code we use to implement message-passing neural network and gated-graph neural network 
 are adapted from open-sourced repositories on Github 
 \footnote{https://github.com/JamesChuanggg/ggnn.pytorch} 
@@ -341,15 +343,76 @@ In the experiments, we use two baselines: the first one is randomly picking a li
 the second one we use a multi-layer perceptrons as policy network, but just with 
 a linear, direct embedding of CNF formula.
 
+As the first step, we train and test our models with 3-SAT problems consist of 
+20 variables and 91 clauses. The training set contains 100 instances; we test
+the models on 50 instances. For each training instance, we run 10 episodes and 
+setup up a upper bound 400 steps for each episodes; but usually one episodes 
+will finish in less than 100 steps.
 The training data and testing data are public and available online 
 \footnote{https://www.cs.ubc.ca/~hoos/SATLIB/benchm.html}.
-To measure the efficiency, we count the number of decisions made by baselines and the 
-graph-based model.
+To measure the efficiency, we count the number of decisions made by the DPLL algorithms 
+with different baselines and the graph-based model. 
+The intermediate states of DPLL such as unit propagation do not count as decisions.
+
+Table 1 shows the basic statistical information (number of decisions) of 50 testing instances.
+As we can see, compared with randomly picking a variable, 
+the naive linear embedding already improves the performance.
+However, we observe decline when using the graph neural network -- it has roughly the same
+performance with the random stategy according the average stesp.
+
+Figure 1 provides a detailed comparision between the three models based on the residual 
+steps of these 50 test instances. In the graph noted in the form of "A vs. B", we obtain
+the residual steps by computing $steps(B) - steps(A)$ for each instances.
+For example, Figure 1 (a) shows the comparision between random strategy and RL with linear 
+embedding, the negative numbers on y-axis mean that on these instances the RL model performs
+better than the random strategy -- overall, RL is better on 52\% instances.
+If we compare the random baseline with graph-based RL, again, we do not observe
+significant improvement. We conjuecture this happens from two reasons: 
+1) the graph model although captures the structural information, but it is more 
+sophisticated, further parameter tunning (as well as for the policy network) 
+may improve the performance;
+2) If the model is trained with more data, we can expect a performance imporvement.
+
+\begin{table}[]
+\begin{tabular}{|l|l|l|l|}
+\hline
+           & mean  & std   & median \\ \hline
+random strategy    & 24.66 & 22.56 & 21.5   \\ \hline
+linear embedding RL & 19.94 & 12.90 & 15.0  \\ \hline
+graph embedding RL  & 24.88 & 17.79 & 19.5  \\ \hline
+\end{tabular}
+\caption{Basic statistical information (steps)}
+\end{table}
+
+\begin{figure}[ht!]
+  \centering
+  \begin{subfigure}[b]{0.5\textwidth}
+    \centering
+    \includegraphics[scale=0.3]{random_vs_linear.png}
+    \caption{random strategy vs. linear embedding RL}
+  \end{subfigure}
+  
+  \begin{subfigure}[b]{0.5\textwidth}
+    \centering
+  \includegraphics[scale=0.3]{random_vs_graph.png}
+  \caption{random strategy vs. graph embedding RL}
+  \end{subfigure}
+
+  \caption{Detailed comparison of three models on 50 test instances.}
+\end{figure}
 
 \section{Related Work}
 
 As artifical neural networks greatly succeeded in vision and natural language tasks in last ten years,
 many works that combine deep learning and logical reasoning also has been emerged recently.
+Some of the work are completely based on neural network, as opposed to utilizing
+an existing deterministic framework. \citeauthor{selsam2018learning} proposed to 
+use message-passing neural network to learn the assignment of a SAT problem \cite{selsam2018learning}.
+We adapt a similar graph representation from \citeauthor{selsam2018learning}, but use it 
+on DPLL, which poses a difficulty on handling dynamic graph strcuture.
+Based on \citeauthor{selsam2018learning}'s NeuraSAT, a ICLR 2019 paper
+further improves the model that directly generates the assignment in a unsupervised fashion, 
+but works on circuit-sat problem\cite{anonymous2019learning}.
 
 \section{Conclusion}
 
