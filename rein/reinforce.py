@@ -103,7 +103,6 @@ class SatEnv():
         print("pick {}, done: {}, backtrack/unsat: {}".format(action, done, False))
         return self.emb(self.state.formula), reward, done, self.state.assignment
 
-# TODO: replace it as a GNN
 class Policy(nn.Module):
     def __init__(self):
         super(Policy, self).__init__()

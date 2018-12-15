@@ -50,9 +50,9 @@ class Propogator(nn.Module):
 class GGNN(nn.Module):
     def __init__(self, opt):
         super(GGNN, self).__init__()
-        assert(opt.state_dim >= opt.annotation_dim)
+        #assert(opt.state_dim >= opt.annotation_dim)
         self.state_dim = opt.state_dim
-        self.annotation_dim = opt.annotation_dim
+        #self.annotation_dim = opt.annotation_dim
         self.n_edge_types = opt.n_edge_types
         self.n_node = opt.n_node
         self.n_steps = opt.n_steps
@@ -72,7 +72,9 @@ class GGNN(nn.Module):
 
         # Output model
         self.out = nn.Sequential(
-            nn.Linear(self.state_dim + self.annotation_dim, self.state_dim),
+            #nn.Linear(self.state_dim + self.annotation_dim, self.state_dim),
+            nn.Linear(self.state_dim, self.state_dim),
+            nn.Linear(self.state_dim, self.state_dim),
             nn.Tanh(),
             nn.Linear(self.state_dim, 1)
         )
@@ -85,7 +87,8 @@ class GGNN(nn.Module):
                 m.weight.data.normal_(0.0, 0.02)
                 m.bias.data.fill_(0)
 
-    def forward(self, prop_state, annotation, A):
+    #def forward(self, prop_state, annotation, A):
+    def forward(self, prop_state, A):
         for i_step in range(self.n_steps):
             in_states = []
             out_states = []
@@ -93,11 +96,13 @@ class GGNN(nn.Module):
                 in_states.append(self.in_fcs[i](prop_state))
                 out_states.append(self.out_fcs[i](prop_state))
             in_states = torch.stack(in_states).transpose(0, 1).contiguous()
+            print(in_states.shape)
             in_states = in_states.view(-1, self.n_node*self.n_edge_types, self.state_dim)
             out_states = torch.stack(out_states).transpose(0, 1).contiguous()
             out_states = out_states.view(-1, self.n_node * self.n_edge_types, self.state_dim)
             prop_state = self.propogator(in_states, out_states, prop_state, A)
-        join_state = torch.cat((prop_state, annotation), 2)
-        output = self.out(join_state)
+        #join_state = torch.cat((prop_state, annotation), 2)
+        #output = self.out(join_state)
+        output = self.out(prop_state)
         output = output.sum(2)
         return output
