@@ -31,8 +31,8 @@ class Formula():
     def __init__(self, cs: List[Clause]):
         self.cs = cs
         self.allVars = list(set([item for sub in [c.xs for c in cs] for item in sub]))
-        # TODO: pure variables lost original information
-        self.pureVars = [k for k, g in groupby(self.allVars, abs) if len(list(g))==1]
+        pureVarsGrp = [list(g) for k, g in groupby(sorted(self.allVars, key=abs), abs)]
+        self.pureVars = [g[0] for g in pureVarsGrp if len(g) == 1]
         self.unitVars = [c[0] for c in cs if len(c) == 1]
     def __str__(self): return str(self.cs)
     __repr__ = __str__
